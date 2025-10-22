@@ -85,31 +85,31 @@ const AddUser = () => {
       <DialogTrigger asChild>
         <Button value="add-user" my={4}>
           <FaPlus fontSize="16px" />
-          Add User
+          Agregar usuario
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Add User</DialogTitle>
+            <DialogTitle>Agregar usuario</DialogTitle>
           </DialogHeader>
           <DialogBody>
             <Text mb={4}>
-              Fill in the form below to add a new user to the system.
+              Completa el formulario para agregar un nuevo usuario al sistema.
             </Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.email}
                 errorText={errors.email?.message}
-                label="Email"
+                label="Correo"
               >
                 <Input
                   {...register("email", {
-                    required: "Email is required",
+                      required: "El correo es obligatorio",
                     pattern: emailPattern,
                   })}
-                  placeholder="Email"
+                  placeholder="Correo"
                   type="email"
                 />
               </Field>
@@ -117,11 +117,11 @@ const AddUser = () => {
               <Field
                 invalid={!!errors.full_name}
                 errorText={errors.full_name?.message}
-                label="Full Name"
+                label="Nombre completo"
               >
                 <Input
                   {...register("full_name")}
-                  placeholder="Full name"
+                  placeholder="Nombre completo"
                   type="text"
                 />
               </Field>
@@ -130,17 +130,17 @@ const AddUser = () => {
                 required
                 invalid={!!errors.password}
                 errorText={errors.password?.message}
-                label="Set Password"
+                label="Establecer contraseña"
               >
                 <Input
                   {...register("password", {
-                    required: "Password is required",
+                    required: "La contraseña es obligatoria",
                     minLength: {
                       value: 8,
-                      message: "Password must be at least 8 characters",
+                      message: "La contraseña debe tener al menos 8 caracteres",
                     },
                   })}
-                  placeholder="Password"
+                  placeholder="Contraseña"
                   type="password"
                 />
               </Field>
@@ -149,16 +149,16 @@ const AddUser = () => {
                 required
                 invalid={!!errors.confirm_password}
                 errorText={errors.confirm_password?.message}
-                label="Confirm Password"
+                label="Confirmar contraseña"
               >
                 <Input
                   {...register("confirm_password", {
-                    required: "Please confirm your password",
+                    required: "Por favor confirma tu contraseña",
                     validate: (value) =>
                       value === getValues().password ||
-                      "The passwords do not match",
+                      "Las contraseñas no coinciden",
                   })}
-                  placeholder="Password"
+                  placeholder="Contraseña"
                   type="password"
                 />
               </Field>
@@ -174,7 +174,7 @@ const AddUser = () => {
                       checked={field.value}
                       onCheckedChange={({ checked }) => field.onChange(checked)}
                     >
-                      Is superuser?
+                      ¿Es superusuario?
                     </Checkbox>
                   </Field>
                 )}
@@ -188,7 +188,7 @@ const AddUser = () => {
                       checked={field.value}
                       onCheckedChange={({ checked }) => field.onChange(checked)}
                     >
-                      Is active?
+                      ¿Está activo?
                     </Checkbox>
                   </Field>
                 )}
@@ -198,13 +198,13 @@ const AddUser = () => {
 
           <DialogFooter gap={2}>
             <DialogActionTrigger asChild>
-              <Button
-                variant="subtle"
-                colorPalette="gray"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
+                <Button
+                  variant="subtle"
+                  colorPalette="gray"
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
             </DialogActionTrigger>
             <Button
               variant="solid"
@@ -212,7 +212,7 @@ const AddUser = () => {
               disabled={!isValid}
               loading={isSubmitting}
             >
-              Save
+              Guardar
             </Button>
           </DialogFooter>
         </form>

@@ -13,7 +13,7 @@ import { Field } from "@/components/ui/field"
 import { InputGroup } from "@/components/ui/input-group"
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
-import Logo from "/assets/images/fastapi-logo.svg"
+import Logo from "/assets/images/PillREN.svg"
 import { emailPattern, passwordRules } from "../utils"
 
 export const Route = createFileRoute("/login")({
@@ -50,7 +50,7 @@ function Login() {
     try {
       await loginMutation.mutateAsync(data)
     } catch {
-      // error is handled by useAuth hook
+      // error handled by hook
     }
   }
 
@@ -67,9 +67,9 @@ function Login() {
     >
       <Image
         src={Logo}
-        alt="FastAPI logo"
+        alt="Pyllren logo"
         height="auto"
-        maxW="2xs"
+        maxW="2xl"
         alignSelf="center"
         mb={4}
       />
@@ -80,10 +80,10 @@ function Login() {
         <InputGroup w="100%" startElement={<FiMail />}>
           <Input
             {...register("username", {
-              required: "Username is required",
+              required: "El correo es obligatorio",
               pattern: emailPattern,
             })}
-            placeholder="Email"
+            placeholder="Correo"
             type="email"
           />
         </InputGroup>
@@ -92,21 +92,23 @@ function Login() {
         type="password"
         startElement={<FiLock />}
         {...register("password", passwordRules())}
-        placeholder="Password"
+        placeholder="Contraseña"
         errors={errors}
       />
       <RouterLink to="/recover-password" className="main-link">
-        Forgot Password?
+        ¿Olvidaste tu contraseña?
       </RouterLink>
       <Button variant="solid" type="submit" loading={isSubmitting} size="md">
-        Log In
+        Iniciar sesión
       </Button>
       <Text>
-        Don't have an account?{" "}
+        ¿No tienes una cuenta?{" "}
         <RouterLink to="/signup" className="main-link">
-          Sign Up
+          Registrarse
         </RouterLink>
       </Text>
     </Container>
   )
 }
+
+export default Login

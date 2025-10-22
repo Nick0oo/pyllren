@@ -86,29 +86,29 @@ const EditUser = ({ user }: EditUserProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm">
           <FaExchangeAlt fontSize="16px" />
-          Edit User
+          Editar usuario
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>Editar usuario</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the user details below.</Text>
+            <Text mb={4}>Actualiza los detalles del usuario a continuación.</Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.email}
                 errorText={errors.email?.message}
-                label="Email"
+                label="Correo"
               >
                 <Input
                   {...register("email", {
-                    required: "Email is required",
+                    required: "El correo es obligatorio",
                     pattern: emailPattern,
                   })}
-                  placeholder="Email"
+                  placeholder="Correo"
                   type="email"
                 />
               </Field>
@@ -116,11 +116,11 @@ const EditUser = ({ user }: EditUserProps) => {
               <Field
                 invalid={!!errors.full_name}
                 errorText={errors.full_name?.message}
-                label="Full Name"
+                label="Nombre completo"
               >
                 <Input
                   {...register("full_name")}
-                  placeholder="Full name"
+                  placeholder="Nombre completo"
                   type="text"
                 />
               </Field>
@@ -128,7 +128,7 @@ const EditUser = ({ user }: EditUserProps) => {
               <Field
                 invalid={!!errors.password}
                 errorText={errors.password?.message}
-                label="Set Password"
+                label="Establecer contraseña"
               >
                 <Input
                   {...register("password", {
@@ -169,7 +169,7 @@ const EditUser = ({ user }: EditUserProps) => {
                       checked={field.value}
                       onCheckedChange={({ checked }) => field.onChange(checked)}
                     >
-                      Is superuser?
+                      ¿Es superusuario?
                     </Checkbox>
                   </Field>
                 )}
@@ -183,7 +183,7 @@ const EditUser = ({ user }: EditUserProps) => {
                       checked={field.value}
                       onCheckedChange={({ checked }) => field.onChange(checked)}
                     >
-                      Is active?
+                      ¿Está activo?
                     </Checkbox>
                   </Field>
                 )}
@@ -198,11 +198,11 @@ const EditUser = ({ user }: EditUserProps) => {
                 colorPalette="gray"
                 disabled={isSubmitting}
               >
-                Cancel
+                Cancelar
               </Button>
             </DialogActionTrigger>
             <Button variant="solid" type="submit" loading={isSubmitting}>
-              Save
+              Guardar
             </Button>
           </DialogFooter>
           <DialogCloseTrigger />

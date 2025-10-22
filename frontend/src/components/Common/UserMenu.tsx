@@ -1,6 +1,6 @@
 import { Box, Button, Flex, Text } from "@chakra-ui/react"
 import { Link } from "@tanstack/react-router"
-import { FaUserAstronaut } from "react-icons/fa"
+import { FaUser } from "react-icons/fa"
 import { FiLogOut, FiUser } from "react-icons/fi"
 
 import useAuth from "@/hooks/useAuth"
@@ -20,8 +20,8 @@ const UserMenu = () => {
         <MenuRoot>
           <MenuTrigger asChild p={2}>
             <Button data-testid="user-menu" variant="solid" maxW="sm" truncate>
-              <FaUserAstronaut fontSize="18" />
-              <Text>{user?.full_name || "User"}</Text>
+              <FaUser fontSize="18" />
+              <Text ml={2}>{user?.full_name}</Text>
             </Button>
           </MenuTrigger>
 
@@ -35,7 +35,7 @@ const UserMenu = () => {
                 style={{ cursor: "pointer" }}
               >
                 <FiUser fontSize="18px" />
-                <Box flex="1">My Profile</Box>
+                <Box flex="1">Mi perfil</Box>
               </MenuItem>
             </Link>
 
@@ -47,7 +47,7 @@ const UserMenu = () => {
               style={{ cursor: "pointer" }}
             >
               <FiLogOut />
-              Log Out
+              Cerrar sesión
             </MenuItem>
           </MenuContent>
         </MenuRoot>

@@ -72,14 +72,14 @@ const UserInformation = () => {
   return (
     <Container maxW="full">
       <Heading size="sm" py={4}>
-        User Information
+        Información del usuario
       </Heading>
       <Box
         w={{ sm: "full", md: "sm" }}
         as="form"
         onSubmit={handleSubmit(onSubmit)}
       >
-        <Field label="Full name">
+  <Field label="Nombre completo">
           {editMode ? (
             <Input
               {...register("full_name", { maxLength: 30 })}
@@ -100,17 +100,17 @@ const UserInformation = () => {
         </Field>
         <Field
           mt={4}
-          label="Email"
+          label="Correo"
           invalid={!!errors.email}
           errorText={errors.email?.message}
         >
           {editMode ? (
             <Input
-              {...register("email", {
-                required: "Email is required",
-                pattern: emailPattern,
-              })}
-              type="email"
+                {...register("email", {
+                  required: "El correo es obligatorio",
+                  pattern: emailPattern,
+                })}
+                type="email"
               size="md"
             />
           ) : (
@@ -127,7 +127,7 @@ const UserInformation = () => {
             loading={editMode ? isSubmitting : false}
             disabled={editMode ? !isDirty || !getValues("email") : false}
           >
-            {editMode ? "Save" : "Edit"}
+            {editMode ? "Guardar" : "Editar"}
           </Button>
           {editMode && (
             <Button
@@ -136,7 +136,7 @@ const UserInformation = () => {
               onClick={onCancel}
               disabled={isSubmitting}
             >
-              Cancel
+              Cancelar
             </Button>
           )}
         </Flex>

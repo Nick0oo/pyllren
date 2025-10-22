@@ -59,19 +59,19 @@ const DeleteUser = ({ id }: { id: string }) => {
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" colorPalette="red">
           <FiTrash2 fontSize="16px" />
-          Delete User
+          Eliminar usuario
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Delete User</DialogTitle>
+            <DialogTitle>Eliminar usuario</DialogTitle>
           </DialogHeader>
           <DialogBody>
             <Text mb={4}>
-              All items associated with this user will also be{" "}
-              <strong>permanently deleted.</strong> Are you sure? You will not
-              be able to undo this action.
+              Todos los elementos asociados a este usuario también serán{" "}
+              <strong>eliminados permanentemente.</strong> ¿Estás seguro? No
+              podrás deshacer esta acción.
             </Text>
           </DialogBody>
 
@@ -82,7 +82,7 @@ const DeleteUser = ({ id }: { id: string }) => {
                 colorPalette="gray"
                 disabled={isSubmitting}
               >
-                Cancel
+                Cancelar
               </Button>
             </DialogActionTrigger>
             <Button
@@ -91,7 +91,7 @@ const DeleteUser = ({ id }: { id: string }) => {
               type="submit"
               loading={isSubmitting}
             >
-              Delete
+              Eliminar
             </Button>
           </DialogFooter>
           <DialogCloseTrigger />

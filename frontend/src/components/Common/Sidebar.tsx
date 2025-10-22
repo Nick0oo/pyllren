@@ -61,12 +61,12 @@ const Sidebar = () => {
                   py={2}
                 >
                   <FiLogOut />
-                  <Text>Log Out</Text>
+                  <Text>Cerrar sesión</Text>
                 </Flex>
               </Box>
               {currentUser?.email && (
                 <Text fontSize="sm" p={2} truncate maxW="sm">
-                  Logged in as: {currentUser.email}
+                  Conectado como: {currentUser.email}
                 </Text>
               )}
             </Flex>
