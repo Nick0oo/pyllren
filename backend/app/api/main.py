@@ -1,13 +1,41 @@
 from fastapi import APIRouter
 
-from app.api.routes import items, login, private, users, utils
+from app.api.routes import (
+    auditorias,
+    bodegas,
+    items,
+    lotes,
+    login,
+    movimientos,
+    private,
+    productos,
+    proveedores,
+    roles,
+    sucursales,
+    users,
+    usuarios_farmacia,
+    utils,
+)
 from app.core.config import settings
 
 api_router = APIRouter()
+
+# Rutas de autenticación y utilidades
 api_router.include_router(login.router)
 api_router.include_router(users.router)
 api_router.include_router(utils.router)
 api_router.include_router(items.router)
+
+# Rutas del sistema de inventario farmacéutico
+api_router.include_router(sucursales.router)
+api_router.include_router(bodegas.router)
+api_router.include_router(proveedores.router)
+api_router.include_router(lotes.router)
+api_router.include_router(productos.router)
+api_router.include_router(roles.router)
+api_router.include_router(usuarios_farmacia.router)
+api_router.include_router(movimientos.router)
+api_router.include_router(auditorias.router)
 
 
 if settings.ENVIRONMENT == "local":
