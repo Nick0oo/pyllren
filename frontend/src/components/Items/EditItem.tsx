@@ -83,28 +83,28 @@ const EditItem = ({ item }: EditItemProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost">
           <FaExchangeAlt fontSize="16px" />
-          Edit Item
+          Editar elemento
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
+            <DialogTitle>Editar elemento</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Update the item details below.</Text>
+            <Text mb={4}>Actualiza los detalles del elemento a continuación.</Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.title}
                 errorText={errors.title?.message}
-                label="Title"
+                label="Título"
               >
                 <Input
                   {...register("title", {
-                    required: "Title is required",
+                    required: "El título es obligatorio",
                   })}
-                  placeholder="Title"
+                  placeholder="Título"
                   type="text"
                 />
               </Field>
@@ -112,11 +112,11 @@ const EditItem = ({ item }: EditItemProps) => {
               <Field
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
-                label="Description"
+                label="Descripción"
               >
                 <Input
                   {...register("description")}
-                  placeholder="Description"
+                  placeholder="Descripción"
                   type="text"
                 />
               </Field>
@@ -131,11 +131,11 @@ const EditItem = ({ item }: EditItemProps) => {
                   colorPalette="gray"
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  Cancelar
                 </Button>
               </DialogActionTrigger>
               <Button variant="solid" type="submit" loading={isSubmitting}>
-                Save
+                Guardar
               </Button>
             </ButtonGroup>
           </DialogFooter>

@@ -74,28 +74,28 @@ const AddItem = () => {
       <DialogTrigger asChild>
         <Button value="add-item" my={4}>
           <FaPlus fontSize="16px" />
-          Add Item
+          Agregar elemento
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Add Item</DialogTitle>
+            <DialogTitle>Agregar elemento</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <Text mb={4}>Fill in the details to add a new item.</Text>
+            <Text mb={4}>Completa los detalles para agregar un nuevo elemento.</Text>
             <VStack gap={4}>
               <Field
                 required
                 invalid={!!errors.title}
                 errorText={errors.title?.message}
-                label="Title"
+                label="Título"
               >
                 <Input
                   {...register("title", {
-                    required: "Title is required.",
+                    required: "El título es obligatorio.",
                   })}
-                  placeholder="Title"
+                  placeholder="Título"
                   type="text"
                 />
               </Field>
@@ -103,11 +103,11 @@ const AddItem = () => {
               <Field
                 invalid={!!errors.description}
                 errorText={errors.description?.message}
-                label="Description"
+                label="Descripción"
               >
                 <Input
                   {...register("description")}
-                  placeholder="Description"
+                  placeholder="Descripción"
                   type="text"
                 />
               </Field>
@@ -116,13 +116,13 @@ const AddItem = () => {
 
           <DialogFooter gap={2}>
             <DialogActionTrigger asChild>
-              <Button
-                variant="subtle"
-                colorPalette="gray"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
+                <Button
+                  variant="subtle"
+                  colorPalette="gray"
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
             </DialogActionTrigger>
             <Button
               variant="solid"
@@ -130,7 +130,7 @@ const AddItem = () => {
               disabled={!isValid}
               loading={isSubmitting}
             >
-              Save
+              Guardar
             </Button>
           </DialogFooter>
         </form>

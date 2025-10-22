@@ -69,25 +69,25 @@ function RecoverPassword() {
       centerContent
     >
       <Heading size="xl" color="ui.main" textAlign="center" mb={2}>
-        Password Recovery
+        Recuperación de contraseña
       </Heading>
       <Text textAlign="center">
-        A password recovery email will be sent to the registered account.
+        Se enviará un correo de recuperación de contraseña a la cuenta registrada.
       </Text>
       <Field invalid={!!errors.email} errorText={errors.email?.message}>
         <InputGroup w="100%" startElement={<FiMail />}>
           <Input
             {...register("email", {
-              required: "Email is required",
+              required: "El correo es obligatorio",
               pattern: emailPattern,
             })}
-            placeholder="Email"
+            placeholder="Correo"
             type="email"
           />
         </InputGroup>
       </Field>
       <Button variant="solid" type="submit" loading={isSubmitting}>
-        Continue
+        Continuar
       </Button>
     </Container>
   )

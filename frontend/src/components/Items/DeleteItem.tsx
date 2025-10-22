@@ -59,7 +59,7 @@ const DeleteItem = ({ id }: { id: string }) => {
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" colorPalette="red">
           <FiTrash2 fontSize="16px" />
-          Delete Item
+          Eliminar elemento
         </Button>
       </DialogTrigger>
 
@@ -67,24 +67,24 @@ const DeleteItem = ({ id }: { id: string }) => {
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogCloseTrigger />
           <DialogHeader>
-            <DialogTitle>Delete Item</DialogTitle>
+            <DialogTitle>Eliminar elemento</DialogTitle>
           </DialogHeader>
           <DialogBody>
             <Text mb={4}>
-              This item will be permanently deleted. Are you sure? You will not
-              be able to undo this action.
+              Este elemento será eliminado permanentemente. ¿Estás seguro? No
+              podrás deshacer esta acción.
             </Text>
           </DialogBody>
 
           <DialogFooter gap={2}>
             <DialogActionTrigger asChild>
-              <Button
-                variant="subtle"
-                colorPalette="gray"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
+                <Button
+                  variant="subtle"
+                  colorPalette="gray"
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
             </DialogActionTrigger>
             <Button
               variant="solid"
@@ -92,7 +92,7 @@ const DeleteItem = ({ id }: { id: string }) => {
               type="submit"
               loading={isSubmitting}
             >
-              Delete
+              Eliminar
             </Button>
           </DialogFooter>
         </form>
