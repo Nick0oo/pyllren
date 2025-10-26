@@ -4,6 +4,10 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
 from app.api.deps import CurrentUser, SessionDep
+from app.core.cache import (
+    get_cache, set_cache, invalidate_entity_cache,
+    list_cache_key, item_cache_key
+)
 from app.models import (
     Bodega,
     BodegaCreate,
@@ -23,11 +27,25 @@ def read_bodegas(
     """
     Retrieve bodegas.
     """
+    # Generate cache key
+    cache_key = list_cache_key("bodegas", skip=skip, limit=limit)
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return BodegasPublic(**cached_result)
+    
     count_statement = select(func.count()).select_from(Bodega)
     count = session.exec(count_statement).one()
     statement = select(Bodega).offset(skip).limit(limit)
     bodegas = session.exec(statement).all()
-    return BodegasPublic(data=bodegas, count=count)
+    
+    result = BodegasPublic(data=bodegas, count=count)
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, result.model_dump(), ttl=300)
+    
+    return result
 
 
 @router.get("/{id}", response_model=BodegaPublic)
@@ -35,9 +53,21 @@ def read_bodega(session: SessionDep, current_user: CurrentUser, id: int) -> Any:
     """
     Get bodega by ID.
     """
+    # Generate cache key
+    cache_key = item_cache_key("bodegas", id)
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return BodegaPublic(**cached_result)
+    
     bodega = session.get(Bodega, id)
     if not bodega:
         raise HTTPException(status_code=404, detail="Bodega not found")
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, bodega.model_dump(), ttl=300)
+    
     return bodega
 
 
@@ -52,6 +82,10 @@ def create_bodega(
     session.add(bodega)
     session.commit()
     session.refresh(bodega)
+    
+    # Invalidate cache
+    invalidate_entity_cache("bodegas")
+    
     return bodega
 
 
@@ -74,6 +108,10 @@ def update_bodega(
     session.add(bodega)
     session.commit()
     session.refresh(bodega)
+    
+    # Invalidate cache
+    invalidate_entity_cache("bodegas")
+    
     return bodega
 
 
@@ -88,5 +126,9 @@ def delete_bodega(session: SessionDep, current_user: CurrentUser, id: int) -> Me
     bodega.estado = False
     session.add(bodega)
     session.commit()
+    
+    # Invalidate cache
+    invalidate_entity_cache("bodegas")
+    
     return Message(message="Bodega deleted successfully")
 

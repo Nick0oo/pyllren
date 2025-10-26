@@ -4,6 +4,10 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
 from app.api.deps import CurrentUser, SessionDep
+from app.core.cache import (
+    get_cache, set_cache, invalidate_entity_cache,
+    list_cache_key, item_cache_key
+)
 from app.models import (
     Message,
     Producto,
@@ -23,11 +27,25 @@ def read_productos(
     """
     Retrieve productos.
     """
+    # Generate cache key
+    cache_key = list_cache_key("productos", skip=skip, limit=limit)
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return ProductosPublic(**cached_result)
+    
     count_statement = select(func.count()).select_from(Producto)
     count = session.exec(count_statement).one()
     statement = select(Producto).offset(skip).limit(limit)
     productos = session.exec(statement).all()
-    return ProductosPublic(data=productos, count=count)
+    
+    result = ProductosPublic(data=productos, count=count)
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, result.model_dump(), ttl=300)
+    
+    return result
 
 
 @router.get("/{id}", response_model=ProductoPublic)
@@ -35,9 +53,21 @@ def read_producto(session: SessionDep, current_user: CurrentUser, id: int) -> An
     """
     Get producto by ID.
     """
+    # Generate cache key
+    cache_key = item_cache_key("productos", id)
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return ProductoPublic(**cached_result)
+    
     producto = session.get(Producto, id)
     if not producto:
         raise HTTPException(status_code=404, detail="Producto not found")
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, producto.model_dump(), ttl=300)
+    
     return producto
 
 
@@ -52,6 +82,10 @@ def create_producto(
     session.add(producto)
     session.commit()
     session.refresh(producto)
+    
+    # Invalidate cache
+    invalidate_entity_cache("productos")
+    
     return producto
 
 
@@ -74,6 +108,10 @@ def update_producto(
     session.add(producto)
     session.commit()
     session.refresh(producto)
+    
+    # Invalidate cache
+    invalidate_entity_cache("productos")
+    
     return producto
 
 
@@ -90,5 +128,9 @@ def delete_producto(
     producto.estado = False
     session.add(producto)
     session.commit()
+    
+    # Invalidate cache
+    invalidate_entity_cache("productos")
+    
     return Message(message="Producto deleted successfully")
 

@@ -179,13 +179,10 @@ function ProveedoresTable() {
                 {proveedor.nit}
               </Table.Cell>
               <Table.Cell>
-                <Text fontSize="sm">{proveedor.nombre}</Text>
+                <Text fontSize="sm">{proveedor.telefono}</Text>
               </Table.Cell>
               <Table.Cell>
-                <Text fontSize="sm">{proveedor.telefono}</Text>
-                <Text fontSize="sm" color="gray.500">
-                  {proveedor.email}
-                </Text>
+                <Text fontSize="sm">{proveedor.email}</Text>
               </Table.Cell>
               <Table.Cell>
                 <Text fontSize="sm">-- Lotes</Text>

@@ -4,6 +4,10 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
 from app.api.deps import CurrentUser, SessionDep
+from app.core.cache import (
+    get_cache, set_cache, invalidate_entity_cache,
+    list_cache_key, item_cache_key
+)
 from app.models import (
     Message,
     Sucursal,
@@ -23,11 +27,25 @@ def read_sucursales(
     """
     Retrieve sucursales.
     """
+    # Generate cache key
+    cache_key = list_cache_key("sucursales", skip=skip, limit=limit)
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return SucursalesPublic(**cached_result)
+    
     count_statement = select(func.count()).select_from(Sucursal)
     count = session.exec(count_statement).one()
     statement = select(Sucursal).offset(skip).limit(limit)
     sucursales = session.exec(statement).all()
-    return SucursalesPublic(data=sucursales, count=count)
+    
+    result = SucursalesPublic(data=sucursales, count=count)
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, result.model_dump(), ttl=300)
+    
+    return result
 
 
 @router.get("/{id}", response_model=SucursalPublic)
@@ -35,9 +53,21 @@ def read_sucursal(session: SessionDep, current_user: CurrentUser, id: int) -> An
     """
     Get sucursal by ID.
     """
+    # Generate cache key
+    cache_key = item_cache_key("sucursales", id)
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return SucursalPublic(**cached_result)
+    
     sucursal = session.get(Sucursal, id)
     if not sucursal:
         raise HTTPException(status_code=404, detail="Sucursal not found")
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, sucursal.model_dump(), ttl=300)
+    
     return sucursal
 
 
@@ -52,6 +82,10 @@ def create_sucursal(
     session.add(sucursal)
     session.commit()
     session.refresh(sucursal)
+    
+    # Invalidate cache
+    invalidate_entity_cache("sucursales")
+    
     return sucursal
 
 
@@ -74,6 +108,10 @@ def update_sucursal(
     session.add(sucursal)
     session.commit()
     session.refresh(sucursal)
+    
+    # Invalidate cache
+    invalidate_entity_cache("sucursales")
+    
     return sucursal
 
 
@@ -90,5 +128,9 @@ def delete_sucursal(
     sucursal.estado = False
     session.add(sucursal)
     session.commit()
+    
+    # Invalidate cache
+    invalidate_entity_cache("sucursales")
+    
     return Message(message="Sucursal deleted successfully")
 
