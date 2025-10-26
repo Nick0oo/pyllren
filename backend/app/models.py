@@ -28,6 +28,14 @@ class UserRegister(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
 
 
+class UserCreateByAdmin(SQLModel):
+    email: EmailStr = Field(max_length=255)
+    password: str = Field(min_length=8, max_length=40)
+    full_name: str | None = Field(default=None, max_length=255)
+    id_sucursal: int | None = Field(default=None, description="ID de la sucursal (opcional)")
+    id_rol: int = Field(description="ID del rol: 3=Auxiliar, 4=Auditor")
+
+
 class UserUpdate(UserBase):
     email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore
     password: str | None = Field(default=None, min_length=8, max_length=40)
@@ -55,9 +63,19 @@ class User(UserBase, table=True):
     fecha_creacion: datetime = Field(default_factory=datetime.now)
     
     # Relaciones
-    items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
-    movimientos: list["MovimientoInventario"] = Relationship(back_populates="usuario")
-    auditorias: list["Auditoria"] = Relationship(back_populates="usuario")
+    items: list["Item"] = Relationship(
+        back_populates="owner",
+        cascade_delete=True,
+        sa_relationship_kwargs={"lazy": "select"}
+    )
+    movimientos: list["MovimientoInventario"] = Relationship(
+        back_populates="usuario",
+        sa_relationship_kwargs={"lazy": "select"}
+    )
+    auditorias: list["Auditoria"] = Relationship(
+        back_populates="usuario",
+        sa_relationship_kwargs={"lazy": "select"}
+    )
     
     # Relaciones farmacéuticas - omitidas para evitar referencias circulares
     # sucursal y rol se pueden acceder mediante queries explícitas

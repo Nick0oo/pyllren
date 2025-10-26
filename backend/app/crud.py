@@ -33,14 +33,43 @@ from app.models import (
     SucursalUpdate,
     User,
     UserCreate,
+    UserCreateByAdmin,
     UserUpdate,
 )
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
-    db_obj = User.model_validate(
-        user_create, update={"hashed_password": get_password_hash(user_create.password)}
-    )
+    # Crear el usuario sin relaciones
+    user_data = user_create.model_dump(exclude_unset=True, exclude={"password"})
+    user_data["hashed_password"] = get_password_hash(user_create.password)
+    db_obj = User(**user_data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def create_user_by_admin(*, session: Session, user_in: UserCreateByAdmin) -> User:
+    """Crear un nuevo usuario por un administrador con validación de rol y sucursal."""
+    # Validar que el rol existe
+    rol = session.get(Rol, user_in.id_rol)
+    if not rol:
+        raise ValueError(f"El rol con ID {user_in.id_rol} no existe")
+    
+    # Validar que el rol es Auxiliar (ID 3) o Auditor (ID 4)
+    if user_in.id_rol not in [3, 4]:
+        raise ValueError("Solo se pueden asignar roles de Auxiliar (ID: 3) o Auditor (ID: 4)")
+    
+    # Validar sucursal si se proporciona
+    if user_in.id_sucursal:
+        sucursal = session.get(Sucursal, user_in.id_sucursal)
+        if not sucursal:
+            raise ValueError(f"La sucursal con ID {user_in.id_sucursal} no existe")
+    
+    # Crear el usuario
+    user_data = user_in.model_dump(exclude_unset=True)
+    user_data["hashed_password"] = get_password_hash(user_in.password)
+    db_obj = User(**user_data)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)

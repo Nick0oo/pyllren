@@ -15,9 +15,11 @@ from app.core.security import get_password_hash, verify_password
 from app.models import (
     Item,
     Message,
+    Rol,
     UpdatePassword,
     User,
     UserCreate,
+    UserCreateByAdmin,
     UserPublic,
     UserRegister,
     UsersPublic,
@@ -72,6 +74,34 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
             subject=email_data.subject,
             html_content=email_data.html_content,
         )
+    return user
+
+
+@router.post(
+    "/create-with-role",
+    dependencies=[Depends(get_current_active_superuser)],
+    response_model=UserPublic
+)
+def create_user_by_admin(*, session: SessionDep, user_in: UserCreateByAdmin) -> Any:
+    """
+    Crear un nuevo usuario asignando un rol (Auxiliar o Auditor) y opcionalmente una sucursal.
+    Solo accesible para administradores.
+    """
+    user = crud.get_user_by_email(session=session, email=user_in.email)
+    if user:
+        raise HTTPException(
+            status_code=400,
+            detail="The user with this email already exists in the system.",
+        )
+    
+    try:
+        user = crud.create_user_by_admin(session=session, user_in=user_in)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
+        )
+    
     return user
 
 
@@ -143,6 +173,7 @@ def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
 def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     """
     Create new user without the need to be logged in.
+    Asigna automáticamente el rol de Administrador.
     """
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
@@ -150,9 +181,30 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
             status_code=400,
             detail="The user with this email already exists in the system",
         )
+    
+    # Obtener el rol de Administrador
+    admin_rol = session.exec(
+        select(Rol).where(Rol.nombre_rol == "Administrador")
+    ).first()
+    
+    if not admin_rol:
+        raise HTTPException(
+            status_code=500,
+            detail="No se encontró el rol de Administrador en el sistema",
+        )
+    
+    # Crear el usuario con el rol de Administrador
     user_create = UserCreate.model_validate(user_in)
-    user = crud.create_user(session=session, user_create=user_create)
-    return user
+    user_data = user_create.model_dump(exclude_unset=True, exclude={"password"})
+    user_data["id_rol"] = admin_rol.id_rol
+    user_data["hashed_password"] = get_password_hash(user_in.password)
+    
+    db_obj = User(**user_data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    
+    return db_obj
 
 
 @router.get("/{user_id}", response_model=UserPublic)
