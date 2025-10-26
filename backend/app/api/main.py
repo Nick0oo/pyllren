@@ -13,7 +13,6 @@ from app.api.routes import (
     roles,
     sucursales,
     users,
-    usuarios_farmacia,
     utils,
 )
 from app.core.config import settings
@@ -33,7 +32,6 @@ api_router.include_router(proveedores.router)
 api_router.include_router(lotes.router)
 api_router.include_router(productos.router)
 api_router.include_router(roles.router)
-api_router.include_router(usuarios_farmacia.router)
 api_router.include_router(movimientos.router)
 api_router.include_router(auditorias.router)
 

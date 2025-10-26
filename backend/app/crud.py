@@ -34,9 +34,6 @@ from app.models import (
     User,
     UserCreate,
     UserUpdate,
-    Usuario,
-    UsuarioCreate,
-    UsuarioUpdate,
 )
 
 
@@ -464,103 +461,29 @@ def update_rol(*, session: Session, db_rol: Rol, rol_in: RolUpdate) -> Rol:
 
 
 # -----------------------------------------------------------------------------
-# USUARIO (Sistema Farmacéutico)
+# FUNCIONES ADICIONALES PARA USER EN SISTEMA FARMACÉUTICO
 # -----------------------------------------------------------------------------
-def create_usuario(*, session: Session, usuario_in: UsuarioCreate) -> Usuario:
-    """Crear un nuevo usuario del sistema farmacéutico."""
-    db_obj = Usuario.model_validate(
-        usuario_in, update={"hash_password": get_password_hash(usuario_in.password)}
-    )
-    session.add(db_obj)
-    session.commit()
-    session.refresh(db_obj)
-    return db_obj
-
-
-def get_usuario(*, session: Session, usuario_id: int) -> Usuario | None:
-    """Obtener un usuario por ID."""
-    statement = select(Usuario).where(Usuario.id_usuario == usuario_id)
-    return session.exec(statement).first()
-
-
-def get_usuario_by_email(*, session: Session, email: str) -> Usuario | None:
-    """Obtener un usuario por email."""
-    statement = select(Usuario).where(Usuario.email == email)
-    return session.exec(statement).first()
-
-
-def get_usuarios(
-    *, session: Session, skip: int = 0, limit: int = 100
-) -> list[Usuario]:
-    """Obtener lista de usuarios con paginación."""
-    statement = select(Usuario).offset(skip).limit(limit)
-    return list(session.exec(statement).all())
-
-
-def get_usuarios_by_sucursal(
+def get_users_by_sucursal(
     *, session: Session, sucursal_id: int, skip: int = 0, limit: int = 100
-) -> list[Usuario]:
+) -> list[User]:
     """Obtener usuarios de una sucursal específica."""
     statement = (
-        select(Usuario)
-        .where(Usuario.id_sucursal == sucursal_id)
+        select(User)
+        .where(User.id_sucursal == sucursal_id)
         .offset(skip)
         .limit(limit)
     )
     return list(session.exec(statement).all())
 
 
-def get_usuarios_by_rol(
+def get_users_by_rol(
     *, session: Session, rol_id: int, skip: int = 0, limit: int = 100
-) -> list[Usuario]:
+) -> list[User]:
     """Obtener usuarios con un rol específico."""
     statement = (
-        select(Usuario).where(Usuario.id_rol == rol_id).offset(skip).limit(limit)
+        select(User).where(User.id_rol == rol_id).offset(skip).limit(limit)
     )
     return list(session.exec(statement).all())
-
-
-def update_usuario(
-    *, session: Session, db_usuario: Usuario, usuario_in: UsuarioUpdate
-) -> Usuario:
-    """Actualizar un usuario existente."""
-    usuario_data = usuario_in.model_dump(exclude_unset=True)
-    extra_data = {}
-    if "password" in usuario_data:
-        password = usuario_data["password"]
-        hashed_password = get_password_hash(password)
-        extra_data["hash_password"] = hashed_password
-        del usuario_data["password"]
-    db_usuario.sqlmodel_update(usuario_data, update=extra_data)
-    session.add(db_usuario)
-    session.commit()
-    session.refresh(db_usuario)
-    return db_usuario
-
-
-def delete_usuario(*, session: Session, usuario_id: int) -> bool:
-    """Soft delete: marcar usuario como inactivo."""
-    usuario = get_usuario(session=session, usuario_id=usuario_id)
-    if usuario:
-        usuario.activo = False
-        session.add(usuario)
-        session.commit()
-        return True
-    return False
-
-
-def authenticate_usuario(
-    *, session: Session, email: str, password: str
-) -> Usuario | None:
-    """Autenticar un usuario del sistema farmacéutico."""
-    db_usuario = get_usuario_by_email(session=session, email=email)
-    if not db_usuario:
-        return None
-    if not verify_password(password, db_usuario.hash_password):
-        return None
-    if not db_usuario.activo:
-        return None
-    return db_usuario
 
 
 # -----------------------------------------------------------------------------
@@ -609,7 +532,7 @@ def get_movimientos_by_producto(
 
 
 def get_movimientos_by_usuario(
-    *, session: Session, usuario_id: int, skip: int = 0, limit: int = 100
+    *, session: Session, usuario_id: uuid.UUID, skip: int = 0, limit: int = 100
 ) -> list[MovimientoInventario]:
     """Obtener movimientos realizados por un usuario específico."""
     statement = (
@@ -676,7 +599,7 @@ def get_auditorias(
 
 
 def get_auditorias_by_usuario(
-    *, session: Session, usuario_id: int, skip: int = 0, limit: int = 100
+    *, session: Session, usuario_id: uuid.UUID, skip: int = 0, limit: int = 100
 ) -> list[Auditoria]:
     """Obtener auditorías de un usuario específico."""
     statement = (
@@ -702,7 +625,7 @@ def get_auditorias_by_entidad(
 
 
 def get_auditorias_by_registro(
-    *, session: Session, entidad: str, registro_id: int, skip: int = 0, limit: int = 100
+    *, session: Session, entidad: str, registro_id: str, skip: int = 0, limit: int = 100
 ) -> list[Auditoria]:
     """Obtener auditorías de un registro específico."""
     statement = (
