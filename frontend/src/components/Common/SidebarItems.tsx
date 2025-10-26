@@ -1,6 +1,6 @@
 import { Box, Flex, Icon, Text } from "@chakra-ui/react"
 import { Link as RouterLink } from "@tanstack/react-router"
-import { FiBriefcase, FiHome, FiSettings, FiUsers } from "react-icons/fi"
+import { FiBriefcase, FiHome, FiSettings, FiUsers, FiTruck } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
 
 import { usePermissions } from "@/hooks/usePermissions"
@@ -24,8 +24,13 @@ interface Item {
 const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const { canAccessModule } = usePermissions()
 
+  const adminItems: Item[] = [
+    { icon: FiUsers, title: "Admin", path: "/admin" },
+    { icon: FiTruck, title: "Proveedores", path: "/proveedores" },
+  ]
+
   const finalItems: Item[] = canAccessModule("admin")
-    ? [...items, { icon: FiUsers, title: "Admin", path: "/admin" }]
+    ? [...items, ...adminItems]
     : items
 
   const listItems = finalItems.map(({ icon, title, path }) => (

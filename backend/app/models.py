@@ -231,7 +231,7 @@ class BodegasPublic(SQLModel):
 # -----------------------------------------------------------------------------
 class ProveedorBase(SQLModel):
     nombre: str
-    nit: str
+    nit: str = Field(unique=True, index=True)
     telefono: str
     email: str
     direccion: str

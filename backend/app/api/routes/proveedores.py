@@ -1,9 +1,9 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
-from sqlmodel import func, select
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import func, select, or_
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, get_current_admin_user
 from app.models import (
     Message,
     Proveedor,
@@ -16,21 +16,94 @@ from app.models import (
 router = APIRouter(prefix="/proveedores", tags=["proveedores"])
 
 
-@router.get("/", response_model=ProveedoresPublic)
+@router.get(
+    "/",
+    dependencies=[Depends(get_current_admin_user)],
+    response_model=ProveedoresPublic
+)
 def read_proveedores(
-    session: SessionDep, current_user: CurrentUser, skip: int = 0, limit: int = 100
+    session: SessionDep, 
+    current_user: CurrentUser, 
+    skip: int = 0, 
+    limit: int = 100,
+    q: str | None = None,
+    estado: bool | None = None
 ) -> Any:
     """
-    Retrieve proveedores.
+    Retrieve proveedores with optional search and filter.
     """
+    # Construir query base
+    statement = select(Proveedor)
     count_statement = select(func.count()).select_from(Proveedor)
+    
+    # Aplicar filtros
+    filters = []
+    
+    if q:
+        search_filter = or_(
+            Proveedor.nombre.ilike(f"%{q}%"),
+            Proveedor.nit.ilike(f"%{q}%"),
+            Proveedor.email.ilike(f"%{q}%"),
+            Proveedor.telefono.ilike(f"%{q}%")
+        )
+        filters.append(search_filter)
+    
+    if estado is not None:
+        filters.append(Proveedor.estado == estado)
+    
+    # Aplicar filtros a ambas queries
+    if filters:
+        statement = statement.where(*filters)
+        count_statement = count_statement.where(*filters)
+    
+    # Ejecutar queries
     count = session.exec(count_statement).one()
-    statement = select(Proveedor).offset(skip).limit(limit)
+    statement = statement.offset(skip).limit(limit)
     proveedores = session.exec(statement).all()
+    
     return ProveedoresPublic(data=proveedores, count=count)
 
 
-@router.get("/{id}", response_model=ProveedorPublic)
+@router.get(
+    "/stats",
+    dependencies=[Depends(get_current_admin_user)]
+)
+def get_proveedores_stats(session: SessionDep, current_user: CurrentUser) -> Any:
+    """
+    Get proveedores statistics.
+    """
+    # Total proveedores
+    total_proveedores = session.exec(select(func.count()).select_from(Proveedor)).one()
+    
+    # Proveedores activos
+    activos = session.exec(
+        select(func.count()).select_from(Proveedor).where(Proveedor.estado == True)
+    ).one()
+    
+    # Proveedores inactivos
+    inactivos = session.exec(
+        select(func.count()).select_from(Proveedor).where(Proveedor.estado == False)
+    ).one()
+    
+    # Total lotes asociados (necesitamos importar Lote)
+    from app.models import Lote
+    total_lotes = session.exec(
+        select(func.count()).select_from(Lote)
+    ).one()
+    
+    return {
+        "total_proveedores": total_proveedores,
+        "activos": activos,
+        "inactivos": inactivos,
+        "total_lotes": total_lotes
+    }
+
+
+@router.get(
+    "/{id}",
+    dependencies=[Depends(get_current_admin_user)],
+    response_model=ProveedorPublic
+)
 def read_proveedor(session: SessionDep, current_user: CurrentUser, id: int) -> Any:
     """
     Get proveedor by ID.
@@ -41,13 +114,28 @@ def read_proveedor(session: SessionDep, current_user: CurrentUser, id: int) -> A
     return proveedor
 
 
-@router.post("/", response_model=ProveedorPublic)
+@router.post(
+    "/",
+    dependencies=[Depends(get_current_admin_user)],
+    response_model=ProveedorPublic
+)
 def create_proveedor(
     *, session: SessionDep, current_user: CurrentUser, proveedor_in: ProveedorCreate
 ) -> Any:
     """
     Create new proveedor.
     """
+    # Verificar que el NIT no esté duplicado
+    existing_proveedor = session.exec(
+        select(Proveedor).where(Proveedor.nit == proveedor_in.nit)
+    ).first()
+    
+    if existing_proveedor:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Ya existe un proveedor con el NIT {proveedor_in.nit}"
+        )
+    
     proveedor = Proveedor.model_validate(proveedor_in)
     session.add(proveedor)
     session.commit()
@@ -55,7 +143,11 @@ def create_proveedor(
     return proveedor
 
 
-@router.put("/{id}", response_model=ProveedorPublic)
+@router.put(
+    "/{id}",
+    dependencies=[Depends(get_current_admin_user)],
+    response_model=ProveedorPublic
+)
 def update_proveedor(
     *,
     session: SessionDep,
@@ -69,6 +161,19 @@ def update_proveedor(
     proveedor = session.get(Proveedor, id)
     if not proveedor:
         raise HTTPException(status_code=404, detail="Proveedor not found")
+    
+    # Si se está actualizando el NIT, verificar que no esté duplicado
+    if proveedor_in.nit and proveedor_in.nit != proveedor.nit:
+        existing_proveedor = session.exec(
+            select(Proveedor).where(Proveedor.nit == proveedor_in.nit)
+        ).first()
+        
+        if existing_proveedor:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Ya existe un proveedor con el NIT {proveedor_in.nit}"
+            )
+    
     update_dict = proveedor_in.model_dump(exclude_unset=True)
     proveedor.sqlmodel_update(update_dict)
     session.add(proveedor)
@@ -77,7 +182,10 @@ def update_proveedor(
     return proveedor
 
 
-@router.delete("/{id}")
+@router.delete(
+    "/{id}",
+    dependencies=[Depends(get_current_admin_user)]
+)
 def delete_proveedor(
     session: SessionDep, current_user: CurrentUser, id: int
 ) -> Message:
