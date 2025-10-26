@@ -5,6 +5,8 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
 from app.core.config import settings
+from sqlmodel import Session
+from app.core.db import engine, init_db
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -32,3 +34,21 @@ if settings.all_cors_origins:
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    """Initialize DB data on application startup (roles, first superuser) if missing.
+
+    This mirrors the behaviour of `scripts/prestart.sh` => `python app/initial_data.py`.
+    Running the server directly (without the prestart script) would otherwise leave
+    the DB without initial roles which makes endpoints like `/signup` fail.
+    """
+    try:
+        with Session(engine) as session:
+            init_db(session)
+    except Exception:
+        # Don't raise on startup; let the app start and allow separate prestart/migrations
+        # to be executed. This is defensive: if DB isn't available at startup the
+        # prestart container or external orchestration should handle it.
+        pass
