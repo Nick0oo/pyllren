@@ -2,6 +2,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+import logging
 from sqlmodel import col, delete, func, select
 
 from app import crud
