@@ -69,12 +69,49 @@ export type UserCreate = {
     password: string;
 };
 
+export type UserCreateByAdmin = {
+    email: string;
+    password: string;
+    full_name?: (string | null);
+    id_sucursal?: (number | null);
+    id_rol: number;
+};
+
+export type SucursalPublic = {
+    id_sucursal: number;
+    nombre_sucursal: string;
+    direccion: string;
+    telefono: string;
+    estado: boolean;
+    fecha_creacion: string;
+};
+
+export type SucursalesPublic = {
+    data: Array<SucursalPublic>;
+    count: number;
+};
+
+export type RolPublic = {
+    id_rol: number;
+    nombre_rol: string;
+    descripcion?: (string | null);
+    permisos: Record<string, any>;
+};
+
+export type RolesPublic = {
+    data: Array<RolPublic>;
+    count: number;
+};
+
 export type UserPublic = {
     email: string;
     is_active?: boolean;
     is_superuser?: boolean;
     full_name?: (string | null);
     id: string;
+    id_sucursal?: (number | null);
+    id_rol?: (number | null);
+    fecha_creacion?: (string | null);
 };
 
 export type UserRegister = {

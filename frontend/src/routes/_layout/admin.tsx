@@ -1,6 +1,6 @@
 import { Badge, Container, Flex, Heading, Table } from "@chakra-ui/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { z } from "zod"
 
 import { type UserPublic, UsersService } from "@/client"
@@ -13,6 +13,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { usePermissions } from "@/hooks/usePermissions"
 
 const usersSearchSchema = z.object({
   page: z.number().catch(1),
@@ -31,6 +32,11 @@ function getUsersQueryOptions({ page }: { page: number }) {
 export const Route = createFileRoute("/_layout/admin")({
   component: Admin,
   validateSearch: (search) => usersSearchSchema.parse(search),
+  beforeLoad: async () => {
+    // Verificar permisos de acceso al módulo admin
+    // Nota: usePermissions no se puede usar aquí porque es un hook
+    // La verificación se hará en el componente Admin
+  },
 })
 
 function UsersTable() {
@@ -38,6 +44,7 @@ function UsersTable() {
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
   const navigate = useNavigate({ from: Route.fullPath })
   const { page } = Route.useSearch()
+  const { ROLE_NAMES } = usePermissions()
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getUsersQueryOptions({ page }),
@@ -85,7 +92,12 @@ function UsersTable() {
                 {user.email}
               </Table.Cell>
               <Table.Cell>
-                {user.is_superuser ? "Superuser" : "User"}
+                {user.is_superuser 
+                  ? "Superusuario" 
+                  : user.id_rol 
+                    ? ROLE_NAMES[user.id_rol as keyof typeof ROLE_NAMES] || "Rol desconocido"
+                    : "Sin rol"
+                }
               </Table.Cell>
               <Table.Cell>{user.is_active ? "Active" : "Inactive"}</Table.Cell>
               <Table.Cell>
@@ -116,6 +128,16 @@ function UsersTable() {
 }
 
 function Admin() {
+  const { canAccessModule } = usePermissions()
+  const navigate = useNavigate()
+
+  // Verificar permisos de acceso
+  if (!canAccessModule("admin")) {
+    // Redirigir a home si no tiene permisos
+    navigate({ to: "/" })
+    return null
+  }
+
   return (
     <Container maxW="full">
       <Heading size="lg" pt={12}>

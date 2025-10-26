@@ -2,7 +2,6 @@ import {
   Button,
   DialogActionTrigger,
   DialogTitle,
-  Flex,
   Input,
   Text,
   VStack,
@@ -11,11 +10,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaPlus } from "react-icons/fa"
-import { type UserCreate, UsersService } from "@/client"
+import { type UserCreateByAdmin, UsersService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
+import { useRolesAndSucursales } from "@/hooks/useRolesAndSucursales"
 import { emailPattern, handleError } from "@/utils"
-import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -26,15 +25,19 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+import { Select, SelectItem } from "../ui/select"
 
-interface UserCreateForm extends UserCreate {
+interface UserCreateByAdminForm extends Omit<UserCreateByAdmin, 'id_sucursal'> {
   confirm_password: string
+  id_sucursal?: number | null
 }
 
 const AddUser = () => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
+  const { roles, sucursales, isLoading } = useRolesAndSucursales()
+  
   const {
     control,
     register,
@@ -42,7 +45,7 @@ const AddUser = () => {
     reset,
     getValues,
     formState: { errors, isValid, isSubmitting },
-  } = useForm<UserCreateForm>({
+  } = useForm<UserCreateByAdminForm>({
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
@@ -50,16 +53,16 @@ const AddUser = () => {
       full_name: "",
       password: "",
       confirm_password: "",
-      is_superuser: false,
-      is_active: false,
+      id_rol: undefined,
+      id_sucursal: null,
     },
   })
 
   const mutation = useMutation({
-    mutationFn: (data: UserCreate) =>
-      UsersService.createUser({ requestBody: data }),
+    mutationFn: (data: UserCreateByAdmin) =>
+      UsersService.createUserByAdmin({ requestBody: data }),
     onSuccess: () => {
-      showSuccessToast("User created successfully.")
+      showSuccessToast("Usuario creado exitosamente.")
       reset()
       setIsOpen(false)
     },
@@ -71,8 +74,10 @@ const AddUser = () => {
     },
   })
 
-  const onSubmit: SubmitHandler<UserCreateForm> = (data) => {
-    mutation.mutate(data)
+  const onSubmit: SubmitHandler<UserCreateByAdminForm> = (data) => {
+    // Preparar datos para el endpoint
+    const { confirm_password, ...userData } = data
+    mutation.mutate(userData)
   }
 
   return (
@@ -106,7 +111,7 @@ const AddUser = () => {
               >
                 <Input
                   {...register("email", {
-                      required: "El correo es obligatorio",
+                    required: "El correo es obligatorio",
                     pattern: emailPattern,
                   })}
                   placeholder="Correo"
@@ -162,38 +167,65 @@ const AddUser = () => {
                   type="password"
                 />
               </Field>
+
+              <Field
+                required
+                invalid={!!errors.id_rol}
+                errorText={errors.id_rol?.message}
+                label="Rol"
+              >
+                 <Controller
+                   control={control}
+                   name="id_rol"
+                   rules={{ required: "El rol es obligatorio" }}
+                   render={({ field }) => (
+                     <Select
+                       placeholder="Seleccionar rol"
+                       value={field.value?.toString() || ""}
+                       onChange={(e) => field.onChange(parseInt(e.target.value))}
+                       disabled={isLoading}
+                     >
+                       {roles.map((rol: any) => (
+                         <SelectItem key={rol.id_rol} value={rol.id_rol}>
+                           {rol.nombre_rol}
+                         </SelectItem>
+                       ))}
+                     </Select>
+                   )}
+                 />
+              </Field>
+
+              <Field
+                invalid={!!errors.id_sucursal}
+                errorText={errors.id_sucursal?.message}
+                label="Sucursal (opcional)"
+              >
+                 <Controller
+                   control={control}
+                   name="id_sucursal"
+                   render={({ field }) => (
+                     <Select
+                       placeholder="Seleccionar sucursal (opcional)"
+                       value={field.value?.toString() || ""}
+                       onChange={(e) => 
+                         field.onChange(e.target.value ? parseInt(e.target.value) : null)
+                       }
+                       disabled={isLoading}
+                     >
+                       <SelectItem value="">
+                         Sin sucursal
+                       </SelectItem>
+                       {sucursales.map((sucursal: any) => (
+                         <SelectItem key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
+                           {sucursal.nombre_sucursal}
+                         </SelectItem>
+                       ))}
+                     </Select>
+                   )}
+                 />
+              </Field>
             </VStack>
 
-            <Flex mt={4} direction="column" gap={4}>
-              <Controller
-                control={control}
-                name="is_superuser"
-                render={({ field }) => (
-                  <Field disabled={field.disabled} colorPalette="teal">
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={({ checked }) => field.onChange(checked)}
-                    >
-                      ¿Es superusuario?
-                    </Checkbox>
-                  </Field>
-                )}
-              />
-              <Controller
-                control={control}
-                name="is_active"
-                render={({ field }) => (
-                  <Field disabled={field.disabled} colorPalette="teal">
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={({ checked }) => field.onChange(checked)}
-                    >
-                      ¿Está activo?
-                    </Checkbox>
-                  </Field>
-                )}
-              />
-            </Flex>
           </DialogBody>
 
           <DialogFooter gap={2}>

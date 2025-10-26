@@ -430,6 +430,26 @@ export class UsersService {
             }
         });
     }
+    
+    /**
+     * Create User By Admin
+     * Crear un nuevo usuario asignando un rol (Farmacéutico, Auxiliar o Auditor) y opcionalmente una sucursal.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns UserPublic Successful Response
+     * @throws ApiError
+     */
+    public static createUserByAdmin(data: { requestBody: UserCreateByAdmin }): CancelablePromise<UserPublic> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/users/create-with-role',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
 }
 
 export class UtilsService {
@@ -463,6 +483,50 @@ export class UtilsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/utils/health-check/'
+        });
+    }
+}
+
+export class RolesService {
+    /**
+     * Read Roles
+     * Retrieve roles.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns RolesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readRoles(data: { skip?: number; limit?: number } = {}): CancelablePromise<RolesPublic> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/roles/',
+            query: {
+                skip: data.skip,
+                limit: data.limit,
+            }
+        });
+    }
+}
+
+export class SucursalesService {
+    /**
+     * Read Sucursales
+     * Retrieve sucursales.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns SucursalesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readSucursales(data: { skip?: number; limit?: number } = {}): CancelablePromise<SucursalesPublic> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/sucursales/',
+            query: {
+                skip: data.skip,
+                limit: data.limit,
+            }
         });
     }
 }

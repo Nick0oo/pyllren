@@ -55,3 +55,15 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
             status_code=403, detail="The user doesn't have enough privileges"
         )
     return current_user
+
+
+def get_current_admin_user(current_user: CurrentUser) -> User:
+    """
+    Permite acceso a superusuarios o usuarios con rol Administrador (id_rol = 1)
+    """
+    if not current_user.is_superuser and current_user.id_rol != 1:
+        raise HTTPException(
+            status_code=403, detail="The user doesn't have enough privileges"
+        )
+    
+    return current_user

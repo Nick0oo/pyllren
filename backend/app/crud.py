@@ -56,9 +56,9 @@ def create_user_by_admin(*, session: Session, user_in: UserCreateByAdmin) -> Use
     if not rol:
         raise ValueError(f"El rol con ID {user_in.id_rol} no existe")
     
-    # Validar que el rol es Auxiliar (ID 3) o Auditor (ID 4)
-    if user_in.id_rol not in [3, 4]:
-        raise ValueError("Solo se pueden asignar roles de Auxiliar (ID: 3) o Auditor (ID: 4)")
+    # Validar que el rol es Farmacéutico (ID 2), Auxiliar (ID 3) o Auditor (ID 4)
+    if user_in.id_rol not in [2, 3, 4]:
+        raise ValueError("Solo se pueden asignar roles de Farmacéutico (ID: 2), Auxiliar (ID: 3) o Auditor (ID: 4)")
     
     # Validar sucursal si se proporciona
     if user_in.id_sucursal:
