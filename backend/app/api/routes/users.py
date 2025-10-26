@@ -13,6 +13,10 @@ from app.api.deps import (
     get_current_admin_user,
 )
 from app.core.config import settings
+from app.core.cache import (
+    get_cache, set_cache, invalidate_entity_cache,
+    list_cache_key, item_cache_key
+)
 from app.core.security import get_password_hash, verify_password
 from app.models import (
     Item,
@@ -42,6 +46,13 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     """
     Retrieve users.
     """
+    # Generate cache key
+    cache_key = list_cache_key("users", skip=skip, limit=limit)
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return UsersPublic(**cached_result)
 
     count_statement = select(func.count()).select_from(User)
     count = session.exec(count_statement).one()
@@ -49,7 +60,12 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     statement = select(User).offset(skip).limit(limit)
     users = session.exec(statement).all()
 
-    return UsersPublic(data=users, count=count)
+    result = UsersPublic(data=users, count=count)
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, result.model_dump(), ttl=300)
+
+    return result
 
 
 @router.post(
@@ -76,6 +92,10 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
             subject=email_data.subject,
             html_content=email_data.html_content,
         )
+    
+    # Invalidate cache
+    invalidate_entity_cache("users")
+    
     return user
 
 
@@ -104,6 +124,9 @@ def create_user_by_admin(*, session: SessionDep, user_in: UserCreateByAdmin) -> 
             detail=str(e),
         )
     
+    # Invalidate cache
+    invalidate_entity_cache("users")
+    
     return user
 
 
@@ -126,6 +149,10 @@ def update_user_me(
     session.add(current_user)
     session.commit()
     session.refresh(current_user)
+    
+    # Invalidate cache for this specific user
+    invalidate_entity_cache("users")
+    
     return current_user
 
 
@@ -154,6 +181,17 @@ def read_user_me(current_user: CurrentUser) -> Any:
     """
     Get current user.
     """
+    # Generate cache key for current user
+    cache_key = item_cache_key("users", str(current_user.id))
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return UserPublic(**cached_result)
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, current_user.model_dump(), ttl=300)
+    
     return current_user
 
 
@@ -216,14 +254,28 @@ def read_user_by_id(
     """
     Get a specific user by id.
     """
+    # Generate cache key
+    cache_key = item_cache_key("users", str(user_id))
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return UserPublic(**cached_result)
+    
     user = session.get(User, user_id)
     if user == current_user:
+        # Cache the result (TTL: 5 minutes)
+        set_cache(cache_key, user.model_dump(), ttl=300)
         return user
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=403,
             detail="The user doesn't have enough privileges",
         )
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, user.model_dump(), ttl=300)
+    
     return user
 
 
@@ -256,6 +308,10 @@ def update_user(
             )
 
     db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
+    
+    # Invalidate cache
+    invalidate_entity_cache("users")
+    
     return db_user
 
 
@@ -277,4 +333,8 @@ def delete_user(
     session.exec(statement)  # type: ignore
     session.delete(user)
     session.commit()
+    
+    # Invalidate cache
+    invalidate_entity_cache("users")
+    
     return Message(message="User deleted successfully")

@@ -5,6 +5,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
 from app.core.config import settings
+from app.core.cache import init_redis, close_redis
 from sqlmodel import Session
 from app.core.db import engine, init_db
 
@@ -38,12 +39,16 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def on_startup() -> None:
-    """Initialize DB data on application startup (roles, first superuser) if missing.
+    """Initialize DB data and Redis on application startup.
 
     This mirrors the behaviour of `scripts/prestart.sh` => `python app/initial_data.py`.
     Running the server directly (without the prestart script) would otherwise leave
     the DB without initial roles which makes endpoints like `/signup` fail.
     """
+    # Initialize Redis
+    init_redis()
+    
+    # Initialize DB data
     try:
         with Session(engine) as session:
             init_db(session)
@@ -52,3 +57,9 @@ def on_startup() -> None:
         # to be executed. This is defensive: if DB isn't available at startup the
         # prestart container or external orchestration should handle it.
         pass
+
+
+@app.on_event("shutdown")
+def on_shutdown() -> None:
+    """Clean up resources on application shutdown."""
+    close_redis()

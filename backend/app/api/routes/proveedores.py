@@ -4,6 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import func, select, or_
 
 from app.api.deps import CurrentUser, SessionDep, get_current_admin_user
+from app.core.cache import (
+    get_cache, set_cache, invalidate_entity_cache, 
+    list_cache_key, item_cache_key, stats_cache_key
+)
 from app.models import (
     Message,
     Proveedor,
@@ -32,6 +36,14 @@ def read_proveedores(
     """
     Retrieve proveedores with optional search and filter.
     """
+    # Generate cache key
+    cache_key = list_cache_key("proveedores", skip=skip, limit=limit, q=q, estado=estado)
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return ProveedoresPublic(**cached_result)
+    
     # Construir query base
     statement = select(Proveedor)
     count_statement = select(func.count()).select_from(Proveedor)
@@ -61,7 +73,12 @@ def read_proveedores(
     statement = statement.offset(skip).limit(limit)
     proveedores = session.exec(statement).all()
     
-    return ProveedoresPublic(data=proveedores, count=count)
+    result = ProveedoresPublic(data=proveedores, count=count)
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, result.model_dump(), ttl=300)
+    
+    return result
 
 
 @router.get(
@@ -72,6 +89,14 @@ def get_proveedores_stats(session: SessionDep, current_user: CurrentUser) -> Any
     """
     Get proveedores statistics.
     """
+    # Generate cache key
+    cache_key = stats_cache_key("proveedores")
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return cached_result
+    
     # Total proveedores
     total_proveedores = session.exec(select(func.count()).select_from(Proveedor)).one()
     
@@ -91,12 +116,17 @@ def get_proveedores_stats(session: SessionDep, current_user: CurrentUser) -> Any
         select(func.count()).select_from(Lote)
     ).one()
     
-    return {
+    result = {
         "total_proveedores": total_proveedores,
         "activos": activos,
         "inactivos": inactivos,
         "total_lotes": total_lotes
     }
+    
+    # Cache the result (TTL: 1 minute)
+    set_cache(cache_key, result, ttl=60)
+    
+    return result
 
 
 @router.get(
@@ -108,9 +138,21 @@ def read_proveedor(session: SessionDep, current_user: CurrentUser, id: int) -> A
     """
     Get proveedor by ID.
     """
+    # Generate cache key
+    cache_key = item_cache_key("proveedores", id)
+    
+    # Try to get from cache
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        return ProveedorPublic(**cached_result)
+    
     proveedor = session.get(Proveedor, id)
     if not proveedor:
         raise HTTPException(status_code=404, detail="Proveedor not found")
+    
+    # Cache the result (TTL: 5 minutes)
+    set_cache(cache_key, proveedor.model_dump(), ttl=300)
+    
     return proveedor
 
 
@@ -140,6 +182,10 @@ def create_proveedor(
     session.add(proveedor)
     session.commit()
     session.refresh(proveedor)
+    
+    # Invalidate cache
+    invalidate_entity_cache("proveedores")
+    
     return proveedor
 
 
@@ -179,6 +225,10 @@ def update_proveedor(
     session.add(proveedor)
     session.commit()
     session.refresh(proveedor)
+    
+    # Invalidate cache
+    invalidate_entity_cache("proveedores")
+    
     return proveedor
 
 
@@ -198,5 +248,9 @@ def delete_proveedor(
     proveedor.estado = False
     session.add(proveedor)
     session.commit()
+    
+    # Invalidate cache
+    invalidate_entity_cache("proveedores")
+    
     return Message(message="Proveedor deleted successfully")
 
