@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, get_user_scope, is_admin_user
 from app.core.cache import (
     get_cache, set_cache, invalidate_entity_cache,
     list_cache_key, item_cache_key
@@ -26,18 +26,41 @@ def read_bodegas(
 ) -> Any:
     """
     Retrieve bodegas.
+    Admins see all, non-admins see only bodegas from their sucursal.
     """
-    # Generate cache key
-    cache_key = list_cache_key("bodegas", skip=skip, limit=limit)
+    scope = get_user_scope(current_user)
+    is_admin = is_admin_user(current_user)
+    
+    # Generate cache key including scope
+    cache_key = list_cache_key(
+        "bodegas", 
+        skip=skip, 
+        limit=limit,
+        scope_id=scope.get("id_sucursal") if scope else None,
+        is_admin=is_admin
+    )
     
     # Try to get from cache
     cached_result = get_cache(cache_key)
     if cached_result is not None:
         return BodegasPublic(**cached_result)
     
-    count_statement = select(func.count()).select_from(Bodega)
+    # Construir query base
+    if is_admin:
+        # Admins ven todas las bodegas
+        count_statement = select(func.count()).select_from(Bodega)
+        statement = select(Bodega)
+    else:
+        # No-admins solo ven bodegas de su sucursal
+        count_statement = (
+            select(func.count())
+            .select_from(Bodega)
+            .where(Bodega.id_sucursal == scope["id_sucursal"])  # type: ignore[index]
+        )
+        statement = select(Bodega).where(Bodega.id_sucursal == scope["id_sucursal"])  # type: ignore[index]
+    
     count = session.exec(count_statement).one()
-    statement = select(Bodega).offset(skip).limit(limit)
+    statement = statement.offset(skip).limit(limit)
     bodegas = session.exec(statement).all()
     
     result = BodegasPublic(data=bodegas, count=count)

@@ -12,6 +12,8 @@ from app.core import security
 from app.core.config import settings
 from app.core.db import engine
 from app.models import TokenPayload, User
+from sqlmodel import select
+from app.models import Bodega
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
@@ -67,3 +69,37 @@ def get_current_admin_user(current_user: CurrentUser) -> User:
         )
     
     return current_user
+
+
+# -----------------------------------------------------------------------------
+# Helpers de alcance/visibilidad por rol
+# -----------------------------------------------------------------------------
+def is_admin_user(current_user: CurrentUser) -> bool:
+    """Un usuario es admin si es superusuario o tiene rol Administrador (id_rol = 1)."""
+    return bool(current_user.is_superuser or current_user.id_rol == 1)
+
+
+def get_user_scope(current_user: CurrentUser) -> dict | None:
+    """
+    Retorna None si el usuario es admin (acceso total),
+    o un dict con `id_sucursal` para filtrar datos.
+    """
+    if is_admin_user(current_user):
+        return None
+    return {"id_sucursal": current_user.id_sucursal}
+
+
+def ensure_bodega_in_scope(session: SessionDep, bodega_id: int, current_user: CurrentUser) -> None:
+    """
+    Valida que la bodega pertenezca a la sucursal del usuario cuando no es admin.
+    Lanza 404 si la bodega no existe o 403 si está fuera de alcance.
+    """
+    bodega = session.get(Bodega, bodega_id)
+    if not bodega:
+        raise HTTPException(status_code=404, detail="Bodega not found")
+
+    if is_admin_user(current_user):
+        return
+
+    if current_user.id_sucursal is None or bodega.id_sucursal != current_user.id_sucursal:
+        raise HTTPException(status_code=403, detail="Bodega fuera de alcance para el usuario")

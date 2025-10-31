@@ -282,9 +282,14 @@ class LoteBase(SQLModel):
     observaciones: str | None = None
 
 
-class LoteCreate(LoteBase):
+class LoteCreate(SQLModel):
+    numero_lote: str | None = None  # Opcional, se genera automáticamente si es None
+    fecha_fabricacion: date
+    fecha_vencimiento: date
+    estado: str = "Activo"
+    observaciones: str | None = None
     id_proveedor: int
-    id_bodega: int
+    id_bodega: int | None = None
 
 
 class LoteUpdate(SQLModel):
@@ -302,7 +307,7 @@ class Lote(LoteBase, table=True):
     
     id_lote: int | None = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
     id_proveedor: int = Field(foreign_key="proveedor.id_proveedor")
-    id_bodega: int = Field(foreign_key="bodega.id_bodega")
+    id_bodega: int | None = Field(default=None, foreign_key="bodega.id_bodega")
     fecha_registro: datetime = Field(default_factory=datetime.now)
     
     # Relaciones
@@ -314,8 +319,13 @@ class Lote(LoteBase, table=True):
 class LotePublic(LoteBase):
     id_lote: int
     id_proveedor: int
-    id_bodega: int
+    id_bodega: int | None
     fecha_registro: datetime
+    # Campos opcionales para datos relacionados
+    proveedor_nombre: str | None = None
+    bodega_nombre: str | None = None
+    producto_nombre: str | None = None
+    stock_total: int | None = None
 
 
 class LotesPublic(SQLModel):
@@ -323,14 +333,28 @@ class LotesPublic(SQLModel):
     count: int
 
 
+class LotesStats(SQLModel):
+    total_lotes: int
+    activos: int
+    vencidos: int
+    proximos_a_vencer: int
+
+
+class LoteReciente(SQLModel):
+    """Modelo simple para lotes recientes (solo campos esenciales)."""
+    id_lote: int
+    numero_lote: str
+    fecha_registro: datetime
+
+
 # -----------------------------------------------------------------------------
 # PRODUCTO
 # -----------------------------------------------------------------------------
 class ProductoBase(SQLModel):
     nombre_comercial: str
-    nombre_generico: str
-    codigo_interno: str
-    codigo_barras: str
+    nombre_generico: str | None = None
+    codigo_interno: str | None = None
+    codigo_barras: str | None = None
     forma_farmaceutica: str
     concentracion: str
     presentacion: str

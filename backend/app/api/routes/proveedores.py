@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import func, select, or_
 
-from app.api.deps import CurrentUser, SessionDep, get_current_admin_user
+from app.api.deps import CurrentUser, SessionDep, get_current_admin_user, get_user_scope, is_admin_user
 from app.core.cache import (
     get_cache, set_cache, invalidate_entity_cache, 
     list_cache_key, item_cache_key, stats_cache_key
@@ -22,7 +22,6 @@ router = APIRouter(prefix="/proveedores", tags=["proveedores"])
 
 @router.get(
     "/",
-    dependencies=[Depends(get_current_admin_user)],
     response_model=ProveedoresPublic
 )
 def read_proveedores(
@@ -35,6 +34,7 @@ def read_proveedores(
 ) -> Any:
     """
     Retrieve proveedores with optional search and filter.
+    All users see all proveedores.
     """
     # Generate cache key
     cache_key = list_cache_key("proveedores", skip=skip, limit=limit, q=q, estado=estado)
@@ -44,7 +44,7 @@ def read_proveedores(
     if cached_result is not None:
         return ProveedoresPublic(**cached_result)
     
-    # Construir query base
+    # Construir query base - todos ven todos los proveedores
     statement = select(Proveedor)
     count_statement = select(func.count()).select_from(Proveedor)
     

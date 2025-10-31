@@ -8,7 +8,7 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
   children: React.ReactNode
 }
 
-export interface SelectItemProps {
+export interface SelectItemProps extends React.OptionHTMLAttributes<HTMLOptionElement> {
   value: string | number
   children: React.ReactNode
 }

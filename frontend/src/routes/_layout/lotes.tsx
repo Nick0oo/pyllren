@@ -65,8 +65,19 @@ function getLotesQueryOptions({
 
 function getLotesStatsQueryOptions() {
   return {
-    queryFn: () => LotesService.getLotesStats(),
+    queryFn: async () => {
+      try {
+        const response = await LotesService.getLotesStats()
+        console.log("Stats response:", response)
+        return response
+      } catch (error) {
+        console.error("Error in getLotesStats:", error)
+        throw error
+      }
+    },
     queryKey: ["lotes-stats"],
+    refetchOnWindowFocus: true,
+    refetchInterval: 60000, // Refrescar cada minuto
   }
 }
 
@@ -76,7 +87,13 @@ export const Route = createFileRoute("/_layout/lotes")({
 })
 
 function StatsCards() {
-  const { data: stats } = useQuery<LotesStats>(getLotesStatsQueryOptions())
+  const { data: stats, isLoading, error } = useQuery<LotesStats>(getLotesStatsQueryOptions())
+  
+  // Debug: mostrar error si hay
+  if (error) {
+    console.error("Error fetching stats:", error)
+  }
+  
   const statsData = [
     {
       title: "Total Lotes",
@@ -99,12 +116,33 @@ function StatsCards() {
     },
     {
       title: "Próximos a vencer",
-      value: stats?.próximos_a_vencer || 0,
+      value: stats?.proximos_a_vencer || 0,
       icon: FiAlertTriangle,
       fill: "yellow",
       color: "yellow",
     },  
   ]
+
+  // Mostrar loading state
+  if (isLoading) {
+    return (
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={4} mb={6}>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card.Root key={index} p={4}>
+            <Card.Body>
+              <Flex align="center" justify="space-between" mb={2}>
+                <Text fontSize="sm" color="gray.500">Cargando...</Text>
+                <Icon as={FiPackage} fontSize="20px" color="gray.300" />
+              </Flex>
+              <Text fontSize="2xl" fontWeight="bold" color="gray.300">
+                --
+              </Text>
+            </Card.Body>
+          </Card.Root>
+        ))}
+      </SimpleGrid>
+    )
+  }
 
   return (
     <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={4} mb={6}>
@@ -206,9 +244,7 @@ function LotesTable() {
         <Table.Header>
           <Table.Row>
             <Table.ColumnHeader w="sm">Lotes</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Producto</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Fecha de Vencimiento</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Stock</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Proveedor</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Bodega</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Estado</Table.ColumnHeader>
@@ -222,21 +258,15 @@ function LotesTable() {
                 <Text fontWeight="medium">{lote.numero_lote}</Text>
               </Table.Cell>
               <Table.Cell>
-                <Text fontSize="sm">--</Text>
-              </Table.Cell>
-              <Table.Cell>
                 <Text fontSize="sm">
                   {new Date(lote.fecha_vencimiento).toLocaleDateString()}
                 </Text>
               </Table.Cell>
               <Table.Cell>
-                <Text fontSize="sm">--</Text>
+                <Text fontSize="sm">{lote.proveedor_nombre || "--"}</Text>
               </Table.Cell>
               <Table.Cell>
-                <Text fontSize="sm">{lote.id_proveedor}</Text>
-              </Table.Cell>
-              <Table.Cell>
-                <Text fontSize="sm">{lote.id_bodega}</Text>
+                <Text fontSize="sm">{lote.bodega_nombre || (lote.id_bodega ? String(lote.id_bodega) : "--")}</Text>
               </Table.Cell>
               <Table.Cell>
                 <Badge
@@ -298,7 +328,7 @@ function LotesTable() {
 
 function Lotes() {
   const navigate = useNavigate()
-  const { page, q, estado, id_bodega } = Route.useSearch()
+  const { q, estado, id_bodega } = Route.useSearch()
   const [searchQuery, setSearchQuery] = useState<string>(q || "")
   const [estadoFilter, setEstadoFilter] = useState<string>(estado || "")
   const [filterBodega, setFilterBodega] = useState<string>(id_bodega || "")
@@ -373,7 +403,7 @@ function Lotes() {
           Gestión de lotes
       </Heading>
       <Text mb={6} color="gray.600">
-        Gestiona la información de tus lotes
+        Gestiona y controla la información de tus lotes
       </Text>
 
       <StatsCards />

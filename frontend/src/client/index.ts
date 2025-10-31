@@ -5,3 +5,5 @@ export { OpenAPI, type OpenAPIConfig } from './core/OpenAPI';
 export * from './sdk.gen';
 export * from './types.gen';
 export * from './ProveedoresService';
+export * from './LotesService';
+export * from './BodegasService';

@@ -30,8 +30,12 @@ export interface LotePublic {
   estado: string
   observaciones?: string
   id_proveedor: number
-  id_bodega: number
+  id_bodega: number | null
   fecha_registro: string
+  proveedor_nombre?: string | null
+  bodega_nombre?: string | null
+  producto_nombre?: string | null
+  stock_total?: number | null
 }
 
 export interface LotesPublic {
@@ -43,7 +47,7 @@ export interface LotesStats {
   total_lotes: number
   activos: number
   vencidos: number
-  próximos_a_vencer: number
+  proximos_a_vencer: number
 }
 
 export class LotesService {
@@ -106,6 +110,8 @@ export class LotesService {
       },
     })
   }
+
+  
 }
 
 
