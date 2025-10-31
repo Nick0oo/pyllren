@@ -191,9 +191,25 @@ class BodegaBase(SQLModel):
     descripcion: str | None = None
     tipo: str  # Principal, Secundaria, De tránsito
     estado: bool = True
+    capacidad: int = Field(default=0, ge=0)
+    ubicacion: str | None = None
+    temperatura_min: float | None = None
+    temperatura_max: float | None = None
+    humedad_min: float | None = None
+    humedad_max: float | None = None
 
 
-class BodegaCreate(BodegaBase):
+class BodegaCreate(SQLModel):
+    nombre: str
+    descripcion: str | None = None
+    tipo: str
+    estado: bool = True
+    capacidad: int = Field(ge=1)  # Requerido y mayor a 0
+    ubicacion: str | None = None
+    temperatura_min: float | None = None
+    temperatura_max: float | None = None
+    humedad_min: float | None = None
+    humedad_max: float | None = None
     id_sucursal: int
 
 
@@ -203,6 +219,12 @@ class BodegaUpdate(SQLModel):
     tipo: str | None = None
     estado: bool | None = None
     id_sucursal: int | None = None
+    capacidad: int | None = Field(default=None, ge=0)
+    ubicacion: str | None = None
+    temperatura_min: float | None = None
+    temperatura_max: float | None = None
+    humedad_min: float | None = None
+    humedad_max: float | None = None
 
 
 class Bodega(BodegaBase, table=True):
@@ -219,6 +241,13 @@ class Bodega(BodegaBase, table=True):
 class BodegaPublic(BodegaBase):
     id_bodega: int
     id_sucursal: int
+
+
+class BodegaPublicExtended(BodegaPublic):
+    """Modelo extendido con información agregada de inventario y sucursal."""
+    total_lotes: int = 0
+    total_productos: int = 0
+    sucursal_nombre: str | None = None
 
 
 class BodegasPublic(SQLModel):
