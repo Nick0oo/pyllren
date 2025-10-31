@@ -20,6 +20,7 @@ import { Route as LayoutRecepcionesRouteImport } from './routes/_layout/recepcio
 import { Route as LayoutProveedoresRouteImport } from './routes/_layout/proveedores'
 import { Route as LayoutLotesRouteImport } from './routes/_layout/lotes'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
+import { Route as LayoutBodegasRouteImport } from './routes/_layout/bodegas'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 
 const SignupRoute = SignupRouteImport.update({
@@ -76,6 +77,11 @@ const LayoutItemsRoute = LayoutItemsRouteImport.update({
   path: '/items',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutBodegasRoute = LayoutBodegasRouteImport.update({
+  id: '/bodegas',
+  path: '/bodegas',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutAdminRoute = LayoutAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
+  '/bodegas': typeof LayoutBodegasRoute
   '/items': typeof LayoutItemsRoute
   '/lotes': typeof LayoutLotesRoute
   '/proveedores': typeof LayoutProveedoresRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
+  '/bodegas': typeof LayoutBodegasRoute
   '/items': typeof LayoutItemsRoute
   '/lotes': typeof LayoutLotesRoute
   '/proveedores': typeof LayoutProveedoresRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_layout/admin': typeof LayoutAdminRoute
+  '/_layout/bodegas': typeof LayoutBodegasRoute
   '/_layout/items': typeof LayoutItemsRoute
   '/_layout/lotes': typeof LayoutLotesRoute
   '/_layout/proveedores': typeof LayoutProveedoresRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/admin'
+    | '/bodegas'
     | '/items'
     | '/lotes'
     | '/proveedores'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/admin'
+    | '/bodegas'
     | '/items'
     | '/lotes'
     | '/proveedores'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_layout/admin'
+    | '/_layout/bodegas'
     | '/_layout/items'
     | '/_layout/lotes'
     | '/_layout/proveedores'
@@ -253,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutItemsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/bodegas': {
+      id: '/_layout/bodegas'
+      path: '/bodegas'
+      fullPath: '/bodegas'
+      preLoaderRoute: typeof LayoutBodegasRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/admin': {
       id: '/_layout/admin'
       path: '/admin'
@@ -265,6 +284,7 @@ declare module '@tanstack/react-router' {
 
 interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
+  LayoutBodegasRoute: typeof LayoutBodegasRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutLotesRoute: typeof LayoutLotesRoute
   LayoutProveedoresRoute: typeof LayoutProveedoresRoute
@@ -275,6 +295,7 @@ interface LayoutRouteChildren {
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
+  LayoutBodegasRoute: LayoutBodegasRoute,
   LayoutItemsRoute: LayoutItemsRoute,
   LayoutLotesRoute: LayoutLotesRoute,
   LayoutProveedoresRoute: LayoutProveedoresRoute,
