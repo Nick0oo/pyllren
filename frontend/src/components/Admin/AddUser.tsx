@@ -5,6 +5,10 @@ import {
   Input,
   Text,
   VStack,
+  Grid,
+  GridItem,
+  HStack,
+  IconButton,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
@@ -36,7 +40,7 @@ const AddUser = () => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
-  const { roles, sucursales, isLoading } = useRolesAndSucursales()
+  const { roles, sucursales, isLoading, rolesError, sucursalesError, refetchRoles, refetchSucursales } = useRolesAndSucursales()
   
   const {
     control,
@@ -102,8 +106,21 @@ const AddUser = () => {
             <Text mb={4}>
               Completa el formulario para agregar un nuevo usuario al sistema.
             </Text>
-            <VStack gap={4}>
-              <Field
+
+            {(rolesError || sucursalesError) && (
+              <HStack mb={3} gap={3} wrap="wrap">
+                <Text color="red.300">
+                  Hubo un problema cargando {rolesError && sucursalesError ? "roles y sucursales" : rolesError ? "los roles" : "las sucursales"}.
+                </Text>
+                <Button size="sm" variant="outline" onClick={() => { rolesError && refetchRoles(); sucursalesError && refetchSucursales(); }}>
+                  Reintentar
+                </Button>
+              </HStack>
+            )}
+
+            <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
+              <GridItem>
+                <Field
                 required
                 invalid={!!errors.email}
                 errorText={errors.email?.message}
@@ -117,9 +134,11 @@ const AddUser = () => {
                   placeholder="Correo"
                   type="email"
                 />
-              </Field>
+                </Field>
+              </GridItem>
 
-              <Field
+              <GridItem>
+                <Field
                 invalid={!!errors.full_name}
                 errorText={errors.full_name?.message}
                 label="Nombre completo"
@@ -129,9 +148,11 @@ const AddUser = () => {
                   placeholder="Nombre completo"
                   type="text"
                 />
-              </Field>
+                </Field>
+              </GridItem>
 
-              <Field
+              <GridItem>
+                <Field
                 required
                 invalid={!!errors.password}
                 errorText={errors.password?.message}
@@ -148,9 +169,11 @@ const AddUser = () => {
                   placeholder="Contraseña"
                   type="password"
                 />
-              </Field>
+                </Field>
+              </GridItem>
 
-              <Field
+              <GridItem>
+                <Field
                 required
                 invalid={!!errors.confirm_password}
                 errorText={errors.confirm_password?.message}
@@ -166,7 +189,8 @@ const AddUser = () => {
                   placeholder="Contraseña"
                   type="password"
                 />
-              </Field>
+                </Field>
+              </GridItem>
 
               <Field
                 required
@@ -200,31 +224,29 @@ const AddUser = () => {
                 errorText={errors.id_sucursal?.message}
                 label="Sucursal (opcional)"
               >
-                 <Controller
-                   control={control}
-                   name="id_sucursal"
-                   render={({ field }) => (
-                     <Select
-                       placeholder="Seleccionar sucursal (opcional)"
-                       value={field.value?.toString() || ""}
-                       onChange={(e) => 
-                         field.onChange(e.target.value ? parseInt(e.target.value) : null)
-                       }
-                       disabled={isLoading}
-                     >
-                       <SelectItem value="">
-                         Sin sucursal
-                       </SelectItem>
-                       {sucursales.map((sucursal: any) => (
-                         <SelectItem key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
-                           {sucursal.nombre_sucursal}
-                         </SelectItem>
-                       ))}
-                     </Select>
-                   )}
-                 />
+                <Controller
+                  control={control}
+                  name="id_sucursal"
+                  render={({ field }) => (
+                    <Select
+                      placeholder="Seleccionar sucursal (opcional)"
+                      value={field.value !== null && field.value !== undefined ? String(field.value) : ""}
+                      onChange={(e) =>
+                        field.onChange(e.target.value ? parseInt(e.target.value) : null)
+                      }
+                      disabled={isLoading}
+                    >
+                      <SelectItem value="">Sin sucursal</SelectItem>
+                      {sucursales.map((sucursal: any) => (
+                        <SelectItem key={sucursal.id_sucursal} value={String(sucursal.id_sucursal)}>
+                          {sucursal.nombre_sucursal}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  )}
+                />
               </Field>
-            </VStack>
+            </Grid>
 
           </DialogBody>
 

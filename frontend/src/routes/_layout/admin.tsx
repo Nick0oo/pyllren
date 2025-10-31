@@ -5,6 +5,8 @@ import { z } from "zod"
 
 import { type UserPublic, UsersService } from "@/client"
 import AddUser from "@/components/Admin/AddUser"
+import AddSucursal from "@/components/Admin/AddSucursal"
+import SucursalesList from "@/components/Admin/SucursalesList"
 import { UserActionsMenu } from "@/components/Common/UserActionsMenu"
 import PendingUsers from "@/components/Pending/PendingUsers"
 import {
@@ -14,6 +16,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useRolesAndSucursales } from "@/hooks/useRolesAndSucursales"
 
 const usersSearchSchema = z.object({
   page: z.number().catch(1),
@@ -45,6 +48,11 @@ function UsersTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page } = Route.useSearch()
   const { ROLE_NAMES } = usePermissions()
+  const { sucursales } = useRolesAndSucursales()
+
+  const sucursalById = new Map<number, string>(
+    (sucursales || []).map((s) => [s.id_sucursal as number, s.nombre_sucursal as string])
+  )
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getUsersQueryOptions({ page }),
@@ -73,6 +81,7 @@ function UsersTable() {
             <Table.ColumnHeader w="sm">Full name</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Email</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Role</Table.ColumnHeader>
+            <Table.ColumnHeader w="sm">Sucursal</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Status</Table.ColumnHeader>
             <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
           </Table.Row>
@@ -98,6 +107,11 @@ function UsersTable() {
                     ? ROLE_NAMES[user.id_rol as keyof typeof ROLE_NAMES] || "Rol desconocido"
                     : "Sin rol"
                 }
+              </Table.Cell>
+              <Table.Cell>
+                {user.id_sucursal != null
+                  ? (sucursalById.get(user.id_sucursal as number) || "Desconocida")
+                  : "Sin sucursal"}
               </Table.Cell>
               <Table.Cell>{user.is_active ? "Active" : "Inactive"}</Table.Cell>
               <Table.Cell>
@@ -143,9 +157,12 @@ function Admin() {
       <Heading size="lg" pt={12}>
         Users Management
       </Heading>
-
-      <AddUser />
+      <Flex gap={3} wrap="wrap">
+        <AddUser />
+        <AddSucursal />
+      </Flex>
       <UsersTable />
+      <SucursalesList />
     </Container>
   )
 }

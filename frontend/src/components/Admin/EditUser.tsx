@@ -17,6 +17,8 @@ import { type UserPublic, UsersService, type UserUpdate } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import useCustomToast from "@/hooks/useCustomToast"
 import { emailPattern, handleError } from "@/utils"
+import { useRolesAndSucursales } from "@/hooks/useRolesAndSucursales"
+import { Select, SelectItem } from "../ui/select"
 import { Checkbox } from "../ui/checkbox"
 import {
   DialogBody,
@@ -34,12 +36,15 @@ interface EditUserProps {
 
 interface UserUpdateForm extends UserUpdate {
   confirm_password?: string
+  id_rol?: number | null
+  id_sucursal?: number | null
 }
 
 const EditUser = ({ user }: EditUserProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
+  const { roles, sucursales, isLoading } = useRolesAndSucursales()
   const {
     control,
     register,
@@ -55,7 +60,7 @@ const EditUser = ({ user }: EditUserProps) => {
 
   const mutation = useMutation({
     mutationFn: (data: UserUpdateForm) =>
-      UsersService.updateUser({ userId: user.id, requestBody: data }),
+      UsersService.updateUser({ userId: user.id, requestBody: data as unknown as UserUpdate }),
     onSuccess: () => {
       showSuccessToast("User updated successfully.")
       reset()
@@ -155,6 +160,58 @@ const EditUser = ({ user }: EditUserProps) => {
                   })}
                   placeholder="Password"
                   type="password"
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.id_rol}
+                errorText={errors.id_rol as any}
+                label="Rol"
+              >
+                <Controller
+                  control={control}
+                  name="id_rol"
+                  render={({ field }) => (
+                    <Select
+                      placeholder="Seleccionar rol"
+                      value={field.value != null ? String(field.value) : ""}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                      disabled={isLoading}
+                    >
+                      <SelectItem value="">Sin rol</SelectItem>
+                      {roles.map((rol: any) => (
+                        <SelectItem key={rol.id_rol} value={String(rol.id_rol)}>
+                          {rol.nombre_rol}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  )}
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.id_sucursal}
+                errorText={errors.id_sucursal as any}
+                label="Sucursal"
+              >
+                <Controller
+                  control={control}
+                  name="id_sucursal"
+                  render={({ field }) => (
+                    <Select
+                      placeholder="Seleccionar sucursal"
+                      value={field.value != null ? String(field.value) : ""}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                      disabled={isLoading}
+                    >
+                      <SelectItem value="">Sin sucursal</SelectItem>
+                      {sucursales.map((sucursal: any) => (
+                        <SelectItem key={sucursal.id_sucursal} value={String(sucursal.id_sucursal)}>
+                          {sucursal.nombre_sucursal}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  )}
                 />
               </Field>
             </VStack>
