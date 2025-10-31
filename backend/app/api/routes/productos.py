@@ -22,22 +22,34 @@ router = APIRouter(prefix="/productos", tags=["productos"])
 
 @router.get("/", response_model=ProductosPublic)
 def read_productos(
-    session: SessionDep, current_user: CurrentUser, skip: int = 0, limit: int = 100
+    session: SessionDep,
+    current_user: CurrentUser,
+    skip: int = 0,
+    limit: int = 100,
+    q: str | None = None,
 ) -> Any:
     """
     Retrieve productos.
     """
     # Generate cache key
-    cache_key = list_cache_key("productos", skip=skip, limit=limit)
+    cache_key = list_cache_key("productos", skip=skip, limit=limit, q=q)
     
     # Try to get from cache
     cached_result = get_cache(cache_key)
     if cached_result is not None:
         return ProductosPublic(**cached_result)
     
-    count_statement = select(func.count()).select_from(Producto)
-    count = session.exec(count_statement).one()
-    statement = select(Producto).offset(skip).limit(limit)
+    stmt = select(Producto)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(
+            (Producto.nombre_comercial.ilike(like))
+            | (Producto.nombre_generico.ilike(like))
+            | (Producto.codigo_interno.ilike(like))
+            | (Producto.codigo_barras.ilike(like))
+        )
+    count = session.exec(select(func.count()).select_from(stmt.subquery())).one()
+    statement = stmt.offset(skip).limit(limit)
     productos = session.exec(statement).all()
     
     result = ProductosPublic(data=productos, count=count)
