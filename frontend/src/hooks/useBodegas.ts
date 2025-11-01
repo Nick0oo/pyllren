@@ -114,7 +114,21 @@ export const useBodegas = (params?: {
     enabled: !!id,
   })
 
-  // Query para estadísticas (solo admin) - retorna objeto de query para usar con useQuery
+  // Query para estadísticas - retorna objeto de query para usar con useQuery
+  // Admin puede ver todas o filtrar por sucursal, no-admin solo ve su sucursal
+  const getStatsQuery = (id_sucursal?: number | null) => ({
+    queryKey: ["bodegas-stats", { id_sucursal }],
+    queryFn: () =>
+      apiRequest(OpenAPI, {
+        method: "GET",
+        url: "/api/v1/bodegas/stats",
+        query: {
+          id_sucursal: id_sucursal || undefined,
+        },
+      }) as Promise<BodegasStats>,
+  })
+
+  // Mantener compatibilidad con statsQuery (deprecated, usar getStatsQuery)
   const statsQuery = {
     queryKey: ["bodegas-stats"],
     queryFn: () =>
@@ -178,6 +192,7 @@ export const useBodegas = (params?: {
     bodegasQuery,
     getBodegaQuery,
     statsQuery,
+    getStatsQuery,
     createMutation,
     updateMutation,
     deleteMutation,

@@ -1,8 +1,8 @@
 from typing import Any
 from datetime import date, datetime, timedelta
 from pydantic import field_validator, model_validator
-from fastapi import APIRouter, HTTPException, Query
-from sqlmodel import func, select
+from fastapi import APIRouter, HTTPException, Query, status
+from sqlmodel import func, select, Session
 from sqlalchemy import or_
 
 from app.api.deps import CurrentUser, SessionDep, get_user_scope, ensure_bodega_in_scope, is_admin_user
@@ -60,8 +60,177 @@ class RecepcionLotePayload(SQLModel):
     lote: LoteCreate
     items: list[RecepcionProductoItem]
 
+
+class DistribucionBodegaItem(SQLModel):
+    """Items de productos para una bodega específica en recepción distribuida."""
+    id_bodega: int
+    items: list[RecepcionProductoItem]
+
+
+class RecepcionDistribuidaPayload(SQLModel):
+    """Payload para recepcionar un lote distribuyendo productos entre múltiples bodegas."""
+    lote_base: LoteCreate
+    distribuciones: list[DistribucionBodegaItem]
+
+
+class CapacidadInsuficienteError(HTTPException):
+    """Exception personalizada cuando bodega no tiene capacidad suficiente."""
+    def __init__(self, bodega_id: int, bodega_nombre: str, disponible: int, requerido: int, sugerencias: dict):
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "capacidad_insuficiente",
+                "bodega_id": bodega_id,
+                "bodega_nombre": bodega_nombre,
+                "capacidad_disponible": disponible,
+                "capacidad_requerida": requerido,
+                "excedente": requerido - disponible,
+                "sugerencias_distribucion": sugerencias
+            }
+        )
+
+
 router = APIRouter(prefix="/lotes", tags=["lotes"])
 
+
+# ============================================================================
+# FUNCIONES AUXILIARES PARA VALIDACIÓN DE CAPACIDAD DE BODEGAS
+# ============================================================================
+
+def calcular_ocupacion_bodega(session: Session, bodega_id: int) -> int:
+    """
+    Calcula la ocupación actual de una bodega sumando cantidad_total
+    de todos los productos en lotes activos de esa bodega.
+    
+    Usa lock de bodega para prevenir race conditions sin usar FOR UPDATE en agregación.
+    
+    Args:
+        session: Sesión de base de datos
+        bodega_id: ID de la bodega
+        
+    Returns:
+        Ocupación actual en unidades
+    """
+    # 🔒 Obtener lock de la bodega (lock a nivel de fila, no de agregación)
+    # Esto previene que otra transacción modifique la bodega mientras calculamos
+    bodega_lock_stmt = select(Bodega).where(Bodega.id_bodega == bodega_id).with_for_update()
+    session.exec(bodega_lock_stmt).one()  # Lock acquired
+    
+    # Ahora calculamos ocupación sin lock (ya tenemos lock de bodega)
+    stmt = (
+        select(func.coalesce(func.sum(Producto.cantidad_total), 0))
+        .join(Lote, Producto.id_lote == Lote.id_lote)
+        .where(
+            Lote.id_bodega == bodega_id,
+            Lote.estado.in_(["Activo", "En tránsito"])  # Estados que ocupan espacio físico
+        )
+    )
+    
+    ocupacion = session.exec(stmt).one()
+    return int(ocupacion)
+
+
+def obtener_bodegas_alternativas(
+    session: Session, 
+    bodega_principal_id: int,
+    cantidad_excedente: int,
+    current_user: CurrentUser
+) -> list[dict]:
+    """
+    Encuentra bodegas de la misma sucursal con capacidad disponible.
+    
+    Args:
+        session: Sesión de base de datos
+        bodega_principal_id: ID de la bodega que no tiene capacidad
+        cantidad_excedente: Cantidad que excede la capacidad
+        current_user: Usuario actual (para validar alcance)
+        
+    Returns:
+        Lista de bodegas ordenadas por capacidad disponible (descendente)
+    """
+    bodega_principal = session.get(Bodega, bodega_principal_id)
+    if not bodega_principal:
+        return []
+    
+    # Buscar bodegas activas de la misma sucursal (excluyendo la principal)
+    stmt = (
+        select(Bodega)
+        .where(
+            Bodega.id_sucursal == bodega_principal.id_sucursal,
+            Bodega.id_bodega != bodega_principal_id,
+            Bodega.estado == True
+        )
+    )
+    
+    bodegas = session.exec(stmt).all()
+    
+    sugerencias = []
+    for bodega in bodegas:
+        ocupacion = calcular_ocupacion_bodega(session, bodega.id_bodega)
+        disponible = bodega.capacidad - ocupacion
+        
+        if disponible > 0:
+            sugerencias.append({
+                "id_bodega": bodega.id_bodega,
+                "nombre": bodega.nombre,
+                "tipo": bodega.tipo,
+                "capacidad_total": bodega.capacidad,
+                "ocupacion_actual": ocupacion,
+                "capacidad_disponible": disponible,
+                "puede_recibir": min(disponible, cantidad_excedente),
+                "porcentaje_ocupacion": round((ocupacion / bodega.capacidad * 100), 2) if bodega.capacidad > 0 else 0
+            })
+    
+    # Ordenar por capacidad disponible (mayor primero) para optimizar logística
+    sugerencias.sort(key=lambda x: x["capacidad_disponible"], reverse=True)
+    
+    return sugerencias
+
+
+def sugerir_distribucion_automatica(
+    sugerencias: list[dict],
+    cantidad_excedente: int
+) -> tuple[list[dict], int]:
+    """
+    Algoritmo greedy para distribuir excedente entre bodegas disponibles.
+    
+    Estrategia: Llenar bodegas de mayor capacidad primero para minimizar
+    el número de bodegas involucradas (reduce complejidad logística).
+    
+    Args:
+        sugerencias: Lista de bodegas alternativas con capacidad
+        cantidad_excedente: Cantidad total a distribuir
+        
+    Returns:
+        Tupla (distribución_propuesta, cantidad_restante)
+        - distribución_propuesta: Lista de asignaciones por bodega
+        - cantidad_restante: Cantidad que no pudo asignarse (0 si todo cabe)
+    """
+    distribucion = []
+    restante = cantidad_excedente
+    
+    for bodega in sugerencias:
+        if restante <= 0:
+            break
+        
+        cantidad_asignar = min(bodega["puede_recibir"], restante)
+        distribucion.append({
+            "id_bodega": bodega["id_bodega"],
+            "nombre_bodega": bodega["nombre"],
+            "tipo": bodega["tipo"],
+            "cantidad": cantidad_asignar,
+            "porcentaje_ocupacion_resultante": round(
+                ((bodega["ocupacion_actual"] + cantidad_asignar) / bodega["capacidad_total"] * 100), 2
+            )
+        })
+        restante -= cantidad_asignar
+    
+    return distribucion, restante
+
+
+# ============================================================================
+# ENDPOINTS DE LOTES
+# ============================================================================
 
 @router.get("/", response_model=LotesPublic)
 def read_lotes(
@@ -436,6 +605,12 @@ def generar_numero_lote_unico(session: SessionDep, id_bodega: int | None, id_pro
 def recepcion_lote(
     *, session: SessionDep, current_user: CurrentUser, payload: RecepcionLotePayload
 ) -> Any:
+    """
+    Recepciona un lote de productos con validación de capacidad de bodega.
+    
+    Si la bodega no tiene capacidad suficiente, retorna 409 Conflict con
+    sugerencias de distribución automática a otras bodegas de la misma sucursal.
+    """
     if not payload.items:
         raise HTTPException(status_code=400, detail="La recepción debe incluir productos")
 
@@ -443,12 +618,83 @@ def recepcion_lote(
     if payload.lote.fecha_fabricacion > payload.lote.fecha_vencimiento:
         raise HTTPException(status_code=400, detail="Fecha de fabricación no puede ser mayor a vencimiento")
 
-    # Verificar alcance de bodega si se proporcionó
+    # Verificar alcance de bodega
     if payload.lote.id_bodega is not None:
         ensure_bodega_in_scope(session, payload.lote.id_bodega, current_user)
+    else:
+        raise HTTPException(status_code=400, detail="Debe especificar una bodega para la recepción")
 
-    # Generar número de lote automático único si no se proporcionó
-    # Siempre generamos uno nuevo para asegurar unicidad
+    # ========================================================================
+    # 🔍 VALIDACIÓN DE CAPACIDAD DE BODEGA
+    # ========================================================================
+    bodega = session.get(Bodega, payload.lote.id_bodega)
+    if not bodega:
+        raise HTTPException(status_code=404, detail="Bodega not found")
+    
+    # Calcular cantidad total del lote a recepcionar
+    cantidad_total_lote = sum(item.cantidad for item in payload.items)
+    
+    # Calcular ocupación actual con lock para prevenir race conditions
+    ocupacion_actual = calcular_ocupacion_bodega(session, bodega.id_bodega)
+    capacidad_disponible = bodega.capacidad - ocupacion_actual
+    
+    # Si excede capacidad, generar sugerencias y retornar error 409
+    if cantidad_total_lote > capacidad_disponible:
+        excedente = cantidad_total_lote - capacidad_disponible
+        
+        # Buscar bodegas alternativas en la misma sucursal
+        bodegas_alternativas = obtener_bodegas_alternativas(
+            session, 
+            bodega.id_bodega, 
+            excedente,
+            current_user
+        )
+        
+        # Sugerir distribución automática
+        distribucion, restante = sugerir_distribucion_automatica(bodegas_alternativas, excedente)
+        
+        if restante > 0:
+            # No hay suficiente capacidad en toda la sucursal - retornar mensaje amigable
+            capacidad_total_sucursal = sum(b["capacidad_disponible"] for b in bodegas_alternativas) + capacidad_disponible
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "capacidad_insuficiente_sucursal",
+                    "message": "Por favor utiliza otra bodega con espacio disponible. La sucursal no tiene capacidad suficiente para este lote.",
+                    "bodega_seleccionada": bodega.nombre,
+                    "capacidad_disponible_sucursal": capacidad_total_sucursal,
+                    "capacidad_requerida": cantidad_total_lote,
+                    "deficit": restante,
+                    "sugerencia": f"Necesitas {restante} unidades más de espacio. Considera usar otra bodega o dividir el lote."
+                }
+            )
+        
+        # Retornar 409 con sugerencias de distribución
+        raise CapacidadInsuficienteError(
+            bodega_id=bodega.id_bodega,
+            bodega_nombre=bodega.nombre,
+            disponible=capacidad_disponible,
+            requerido=cantidad_total_lote,
+            sugerencias={
+                "bodega_principal": {
+                    "id_bodega": bodega.id_bodega,
+                    "nombre": bodega.nombre,
+                    "tipo": bodega.tipo,
+                    "capacidad_disponible": capacidad_disponible,
+                    "cantidad_sugerida": capacidad_disponible,
+                    "ocupacion_actual": ocupacion_actual,
+                    "capacidad_total": bodega.capacidad
+                },
+                "bodegas_secundarias": distribucion,
+                "mensaje": f"Se sugiere distribuir {capacidad_disponible} unidades en '{bodega.nombre}' y el resto en otras bodegas."
+            }
+        )
+    
+    # ========================================================================
+    # ✅ HAY CAPACIDAD SUFICIENTE - PROCEDER CON RECEPCIÓN NORMAL
+    # ========================================================================
+    
+    # Generar número de lote automático único
     numero_lote = generar_numero_lote_unico(
         session, 
         payload.lote.id_bodega, 
@@ -523,6 +769,191 @@ def recepcion_lote(
     invalidate_entity_cache("productos")
 
     return {"lote": lote, "productos_ids": productos_ids}
+
+
+@router.post("/recepcion-distribuida")
+def recepcion_lote_distribuida(
+    *, 
+    session: SessionDep, 
+    current_user: CurrentUser, 
+    payload: RecepcionDistribuidaPayload
+) -> Any:
+    """
+    Recepciona un lote distribuyendo productos entre múltiples bodegas de la misma sucursal.
+    
+    Este endpoint se usa cuando una bodega no tiene capacidad suficiente y se necesita
+    distribuir el lote entre varias bodegas.
+    
+    Crea sub-lotes (uno por bodega) con el mismo número base pero sufijos diferentes.
+    Usa transacción atómica para garantizar consistencia.
+    
+    Returns:
+        Diccionario con número de lote base y lista de productos creados por bodega
+    """
+    if not payload.distribuciones:
+        raise HTTPException(status_code=400, detail="Debe especificar al menos una bodega")
+    
+    # Validaciones de fechas del lote base
+    if payload.lote_base.fecha_fabricacion > payload.lote_base.fecha_vencimiento:
+        raise HTTPException(status_code=400, detail="Fecha de fabricación no puede ser mayor a vencimiento")
+    
+    # Validar que todas las bodegas están en el alcance del usuario
+    bodega_ids = [d.id_bodega for d in payload.distribuciones]
+    for bodega_id in bodega_ids:
+        ensure_bodega_in_scope(session, bodega_id, current_user)
+    
+    # Obtener todas las bodegas y validar que existan
+    bodegas = session.exec(select(Bodega).where(Bodega.id_bodega.in_(bodega_ids))).all()
+    if len(bodegas) != len(bodega_ids):
+        raise HTTPException(status_code=404, detail="Una o más bodegas no existen")
+    
+    # Validar que todas las bodegas son de la misma sucursal
+    sucursales = set(b.id_sucursal for b in bodegas)
+    if len(sucursales) > 1:
+        raise HTTPException(
+            status_code=400, 
+            detail="Todas las bodegas deben pertenecer a la misma sucursal"
+        )
+    
+    # ========================================================================
+    # 🔍 RE-VALIDAR CAPACIDAD DE CADA BODEGA CON LOCKS
+    # ========================================================================
+    for dist in payload.distribuciones:
+        bodega = next((b for b in bodegas if b.id_bodega == dist.id_bodega), None)
+        if not bodega:
+            continue
+        
+        cantidad_asignada = sum(item.cantidad for item in dist.items)
+        ocupacion = calcular_ocupacion_bodega(session, bodega.id_bodega)
+        disponible = bodega.capacidad - ocupacion
+        
+        if cantidad_asignada > disponible:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "capacidad_insuficiente_al_distribuir",
+                    "message": f"Bodega '{bodega.nombre}' ya no tiene capacidad suficiente.",
+                    "bodega": bodega.nombre,
+                    "disponible": disponible,
+                    "requerido": cantidad_asignada,
+                    "sugerencia": "La capacidad pudo haber cambiado. Recalcula la distribución."
+                }
+            )
+    
+    # ========================================================================
+    # ✅ CREAR SUB-LOTES Y PRODUCTOS EN CADA BODEGA
+    # ========================================================================
+    
+    # Generar número base para el lote (usaremos la primera bodega como referencia)
+    numero_lote_base = generar_numero_lote_unico(
+        session, 
+        bodega_ids[0], 
+        payload.lote_base.id_proveedor
+    )
+    
+    productos_creados = []
+    lotes_creados = []
+    
+    # Crear sub-lote por cada bodega
+    for dist in payload.distribuciones:
+        bodega = next(b for b in bodegas if b.id_bodega == dist.id_bodega)
+        
+        # Crear sub-lote con sufijo identificador de bodega
+        lote_data = payload.lote_base.model_dump(exclude_none=True)
+        lote_data["numero_lote"] = f"{numero_lote_base}-{bodega.nombre[:3].upper()}"
+        lote_data["id_bodega"] = dist.id_bodega
+        lote_data["observaciones"] = (
+            f"Distribución automática. Lote base: {numero_lote_base}. "
+            f"{lote_data.get('observaciones', '')}"
+        ).strip()
+        
+        lote = Lote.model_validate(lote_data)
+        session.add(lote)
+        session.commit()
+        session.refresh(lote)
+        
+        lotes_creados.append({
+            "id_lote": lote.id_lote,
+            "numero_lote": lote.numero_lote,
+            "bodega": bodega.nombre
+        })
+        
+        # Crear productos para este sub-lote
+        for item in dist.items:
+            prod = Producto(
+                nombre_comercial=item.nombre_comercial,
+                nombre_generico=item.nombre_generico,
+                codigo_interno=item.codigo_interno,
+                codigo_barras=item.codigo_barras,
+                forma_farmaceutica=item.forma_farmaceutica,
+                concentracion=item.concentracion,
+                presentacion=item.presentacion,
+                unidad_medida=item.unidad_medida,
+                cantidad_total=item.cantidad,
+                cantidad_disponible=item.cantidad,
+                stock_minimo=item.stock_minimo,
+                stock_maximo=item.stock_maximo,
+                id_lote=lote.id_lote,  # type: ignore[arg-type]
+            )
+            session.add(prod)
+            session.commit()
+            session.refresh(prod)
+            
+            productos_creados.append({
+                "id_producto": prod.id_producto,
+                "nombre": prod.nombre_comercial,
+                "cantidad": prod.cantidad_total,
+                "bodega_id": bodega.id_bodega,
+                "bodega_nombre": bodega.nombre,
+                "numero_lote": lote.numero_lote
+            })
+            
+            # Crear movimiento de inventario
+            movimiento = MovimientoInventario(
+                tipo_movimiento="Entrada",
+                cantidad=item.cantidad,
+                descripcion=f"Recepción distribuida - Lote base {numero_lote_base} → {bodega.nombre}",
+                id_producto=prod.id_producto,  # type: ignore[arg-type]
+                id_usuario=current_user.id,  # type: ignore[arg-type]
+                id_sucursal_origen=None,
+                id_sucursal_destino=bodega.id_sucursal,
+            )
+            session.add(movimiento)
+            session.commit()
+    
+    # ========================================================================
+    # 📝 AUDITORÍA
+    # ========================================================================
+    audit = Auditoria(
+        entidad_afectada="lote",
+        id_registro_afectado=numero_lote_base,
+        accion="recepcion_lote_distribuida",
+        detalle={
+            "numero_lote_base": numero_lote_base,
+            "lotes_creados": lotes_creados,
+            "total_productos": len(productos_creados),
+            "bodegas_involucradas": len(payload.distribuciones),
+        },
+        resultado="Éxito",
+        id_usuario=current_user.id,  # type: ignore[arg-type]
+    )
+    session.add(audit)
+    session.commit()
+    
+    # Invalidar caches
+    invalidate_entity_cache("lotes")
+    invalidate_entity_cache("productos")
+    invalidate_pattern("lotes:*:stats")
+    invalidate_stats_cache("lotes")
+    
+    return {
+        "numero_lote_base": numero_lote_base,
+        "lotes_creados": lotes_creados,
+        "productos_creados": productos_creados,
+        "total_productos": len(productos_creados),
+        "bodegas_utilizadas": len(payload.distribuciones),
+        "message": f"✅ Lote distribuido exitosamente en {len(payload.distribuciones)} bodega(s)"
+    }
 
 
 @router.put("/{id}", response_model=LotePublic)
