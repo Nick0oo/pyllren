@@ -44,10 +44,15 @@ export interface BodegasStats {
 }
 
 export class BodegasStatsService {
-  public static getBodegasStats(): CancelablePromise<BodegasStats> {
+  public static getBodegasStats(data?: {
+    id_sucursal?: number
+  }): CancelablePromise<BodegasStats> {
     return __request(OpenAPI, {
       method: 'GET',
       url: '/api/v1/bodegas/stats/',
+      query: {
+        id_sucursal: data?.id_sucursal,
+      },
     })
   }
 }

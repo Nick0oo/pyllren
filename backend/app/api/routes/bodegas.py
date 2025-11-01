@@ -114,35 +114,56 @@ def read_bodegas(
     return result
 
 
-@router.get(
-    "/stats",
-    dependencies=[Depends(get_current_admin_user)]
-)
-def get_bodegas_stats(session: SessionDep, current_user: CurrentUser) -> Any:
+@router.get("/stats")
+def get_bodegas_stats(
+    session: SessionDep, 
+    current_user: CurrentUser,
+    id_sucursal: int | None = None
+) -> Any:
     """
-    Get bodegas statistics. Only admins can access this endpoint.
+    Get bodegas statistics.
+    Admins can see all bodegas or filter by id_sucursal.
+    Non-admins see only bodegas from their sucursal.
     Returns: total_bodegas, operativas, capacidad_total, ocupacion_total
     """
-    # Generate cache key
-    cache_key = stats_cache_key("bodegas")
+    scope = get_user_scope(current_user)
+    is_admin = is_admin_user(current_user)
+    
+    # Determinar id_sucursal para filtrar
+    if is_admin:
+        # Admin puede usar id_sucursal del query (opcional)
+        filter_sucursal_id = id_sucursal
+    else:
+        # No-admin: forzar filtrado por su sucursal
+        filter_sucursal_id = scope["id_sucursal"] if scope else None  # type: ignore[index]
+    
+    # Generate cache key with scope
+    cache_key = stats_cache_key(f"bodegas:{filter_sucursal_id or 'all'}")
     
     # Try to get from cache
     cached_result = get_cache(cache_key)
     if cached_result is not None:
         return cached_result
     
+    # Base queries con filtro de sucursal
+    base_count = select(func.count()).select_from(Bodega)
+    base_operativas = select(func.count()).select_from(Bodega).where(Bodega.estado == True)
+    base_capacidad = select(func.sum(Bodega.capacidad)).select_from(Bodega)
+    
+    # Aplicar filtro de sucursal si corresponde
+    if filter_sucursal_id is not None:
+        base_count = base_count.where(Bodega.id_sucursal == filter_sucursal_id)
+        base_operativas = base_operativas.where(Bodega.id_sucursal == filter_sucursal_id)
+        base_capacidad = base_capacidad.where(Bodega.id_sucursal == filter_sucursal_id)
+    
     # Total bodegas
-    total_bodegas = session.exec(select(func.count()).select_from(Bodega)).one()
+    total_bodegas = session.exec(base_count).one()
     
     # Bodegas operativas (estado=True)
-    operativas = session.exec(
-        select(func.count()).select_from(Bodega).where(Bodega.estado == True)
-    ).one()
+    operativas = session.exec(base_operativas).one()
     
     # Capacidad total (suma de todas las capacidades)
-    capacidad_total_result = session.exec(
-        select(func.sum(Bodega.capacidad)).select_from(Bodega)
-    ).one()
+    capacidad_total_result = session.exec(base_capacidad).one()
     capacidad_total = capacidad_total_result if capacidad_total_result is not None else 0
     
     # Ocupación total básica (placeholder por ahora)

@@ -78,8 +78,8 @@ function Bodegas() {
     }
   }, [alcance.scopeSucursalId, isAdmin])
 
-  // Verificar permisos de acceso
-  if (!canAccessModule("admin")) {
+  // Verificar permisos de acceso - permitir tanto admin como inventory
+  if (!canAccessModule("admin") && !canAccessModule("inventory")) {
     navigate({ to: "/" })
     return null
   }

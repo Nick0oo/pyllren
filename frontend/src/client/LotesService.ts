@@ -50,6 +50,60 @@ export interface LotesStats {
   proximos_a_vencer: number
 }
 
+export interface RecepcionProductoItem {
+  nombre_comercial: string
+  nombre_generico?: string
+  codigo_interno?: string
+  codigo_barras?: string
+  forma_farmaceutica: string
+  concentracion: string
+  presentacion: string
+  unidad_medida: string
+  cantidad: number
+  stock_minimo: number
+  stock_maximo: number
+}
+
+export interface RecepcionLotePayload {
+  lote: LoteCreate
+  items: RecepcionProductoItem[]
+}
+
+export interface DistribucionBodegaItem {
+  id_bodega: number
+  items: RecepcionProductoItem[]
+}
+
+export interface RecepcionDistribuidaPayload {
+  lote_base: LoteCreate
+  distribuciones: DistribucionBodegaItem[]
+}
+
+export interface RecepcionResponse {
+  lote: LotePublic
+  productos_ids: number[]
+}
+
+export interface RecepcionDistribuidaResponse {
+  numero_lote_base: string
+  lotes_creados: Array<{
+    id_lote: number
+    numero_lote: string
+    bodega: string
+  }>
+  productos_creados: Array<{
+    id_producto: number
+    nombre: string
+    cantidad: number
+    bodega_id: number
+    bodega_nombre: string
+    numero_lote: string
+  }>
+  total_productos: number
+  bodegas_utilizadas: number
+  message: string
+}
+
 export class LotesService {
   public static readLotes(data: {
     skip?: number
@@ -111,7 +165,35 @@ export class LotesService {
     })
   }
 
-  
-}
+  public static recepcionLote(data: {
+    requestBody: RecepcionLotePayload
+  }): CancelablePromise<RecepcionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/lotes/recepcion",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        400: "Bad Request",
+        409: "Capacidad Insuficiente",
+        507: "Capacidad Insuficiente en Sucursal",
+      },
+    })
+  }
 
+  public static recepcionDistribuida(data: {
+    requestBody: RecepcionDistribuidaPayload
+  }): CancelablePromise<RecepcionDistribuidaResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/lotes/recepcion-distribuida",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        400: "Bad Request",
+        409: "Capacidad Insuficiente al Distribuir",
+      },
+    })
+  }
+}
 

@@ -29,11 +29,11 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const adminItems: Item[] = [
     { icon: FiUsers, title: "Admin", path: "/admin" },
     { icon: FiTruck, title: "Proveedores", path: "/proveedores" },
-    { icon: FiBox, title: "Bodegas", path: "/bodegas" },
   ]
 
   const inventoryItems: Item[] = [
     { icon: FiPackage, title: "Recepción de lotes", path: "/recepciones" },
+    { icon: FiBox, title: "Bodegas", path: "/bodegas" }, // Todos los roles de inventario pueden ver bodegas (con filtrado por sucursal)
   ]
 
   const finalItems: Item[] = [

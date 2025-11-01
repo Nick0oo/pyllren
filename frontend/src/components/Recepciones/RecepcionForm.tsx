@@ -93,17 +93,39 @@ const RecepcionForm = ({ alcance }: Props) => {
         methods.reset()
       },
       onError: (error: any) => {
-        // Manejo mejorado de errores 422
+        // Manejo de error de capacidad insuficiente (409)
+        if (error?.status === 409 && error?.body?.detail) {
+          const detail = error.body.detail
+          
+          // Verificar si detail es un objeto con la propiedad error
+          if (typeof detail === "object" && detail.error) {
+            // Caso 1: Capacidad insuficiente en toda la sucursal
+            if (detail.error === "capacidad_insuficiente_sucursal") {
+              showErrorToast(String(detail.message || "Por favor utiliza otra bodega con espacio disponible"))
+              return
+            }
+            
+            // Caso 2: Capacidad insuficiente pero hay alternativas (mostrar sugerencias)
+            if (detail.error === "capacidad_insuficiente") {
+              const mensaje = `La bodega "${detail.bodega_nombre}" no tiene espacio suficiente. Disponible: ${detail.capacidad_disponible}, Requerido: ${detail.capacidad_requerida}`
+              showErrorToast(mensaje)
+              // TODO: Aquí se podría mostrar el CapacidadDialog con las sugerencias
+              return
+            }
+          }
+        }
+        
+        // Manejo de errores 422 (validación)
         if (error?.body?.detail) {
           const detail = error.body.detail
           if (Array.isArray(detail)) {
             const messages = detail.map((d: any) => `${d.loc?.join(".")}: ${d.msg}`).join(", ")
             showErrorToast(`Error de validación: ${messages}`)
           } else if (typeof detail === "string") {
-            showErrorToast(`Error: ${detail}`)
+            showErrorToast(detail)
           }
         } else {
-          handleError(error)
+          showErrorToast("Error al procesar la recepción")
         }
       },
     })
