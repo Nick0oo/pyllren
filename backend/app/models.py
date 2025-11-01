@@ -434,9 +434,28 @@ class ProductoPublic(ProductoBase):
     fecha_creacion: datetime
 
 
+class ProductoPublicExtended(ProductoPublic):
+    """Producto público extendido con información del lote y la bodega."""
+    numero_lote: str | None = None
+    bodega_nombre: str | None = None
+
+
 class ProductosPublic(SQLModel):
     data: list[ProductoPublic]
     count: int
+
+
+class ProductosPublicExtended(SQLModel):
+    data: list[ProductoPublicExtended]
+    count: int
+
+
+class ProductosStats(SQLModel):
+    """Estadísticas simples para el dashboard de productos."""
+    total_productos: int
+    stock_total: int
+    lotes_activos: int
+    productos_criticos: int
 
 
 # -----------------------------------------------------------------------------

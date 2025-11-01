@@ -7,7 +7,8 @@ import { usePermissions } from "@/hooks/usePermissions"
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/" },
-  { icon: FiBriefcase, title: "Productos", path: "/items" },
+  // Punto de entrada para la gestión de productos (lee desde /productos)
+  { icon: FiBriefcase, title: "Productos", path: "/productos" },
   { icon: FiSettings, title: "Configuración de usuario", path: "/settings" },
   { icon: FiPackage, title: "Lotes", path: "/lotes" },
 ]

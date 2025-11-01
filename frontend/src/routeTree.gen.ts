@@ -18,6 +18,7 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutRecepcionesRouteImport } from './routes/_layout/recepciones'
 import { Route as LayoutProveedoresRouteImport } from './routes/_layout/proveedores'
+import { Route as LayoutProductosRouteImport } from './routes/_layout/productos'
 import { Route as LayoutLotesRouteImport } from './routes/_layout/lotes'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutBodegasRouteImport } from './routes/_layout/bodegas'
@@ -67,6 +68,11 @@ const LayoutProveedoresRoute = LayoutProveedoresRouteImport.update({
   path: '/proveedores',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutProductosRoute = LayoutProductosRouteImport.update({
+  id: '/productos',
+  path: '/productos',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutLotesRoute = LayoutLotesRouteImport.update({
   id: '/lotes',
   path: '/lotes',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/bodegas': typeof LayoutBodegasRoute
   '/items': typeof LayoutItemsRoute
   '/lotes': typeof LayoutLotesRoute
+  '/productos': typeof LayoutProductosRoute
   '/proveedores': typeof LayoutProveedoresRoute
   '/recepciones': typeof LayoutRecepcionesRoute
   '/settings': typeof LayoutSettingsRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/bodegas': typeof LayoutBodegasRoute
   '/items': typeof LayoutItemsRoute
   '/lotes': typeof LayoutLotesRoute
+  '/productos': typeof LayoutProductosRoute
   '/proveedores': typeof LayoutProveedoresRoute
   '/recepciones': typeof LayoutRecepcionesRoute
   '/settings': typeof LayoutSettingsRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/_layout/bodegas': typeof LayoutBodegasRoute
   '/_layout/items': typeof LayoutItemsRoute
   '/_layout/lotes': typeof LayoutLotesRoute
+  '/_layout/productos': typeof LayoutProductosRoute
   '/_layout/proveedores': typeof LayoutProveedoresRoute
   '/_layout/recepciones': typeof LayoutRecepcionesRoute
   '/_layout/settings': typeof LayoutSettingsRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/bodegas'
     | '/items'
     | '/lotes'
+    | '/productos'
     | '/proveedores'
     | '/recepciones'
     | '/settings'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/bodegas'
     | '/items'
     | '/lotes'
+    | '/productos'
     | '/proveedores'
     | '/recepciones'
     | '/settings'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/_layout/bodegas'
     | '/_layout/items'
     | '/_layout/lotes'
+    | '/_layout/productos'
     | '/_layout/proveedores'
     | '/_layout/recepciones'
     | '/_layout/settings'
@@ -251,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutProveedoresRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/productos': {
+      id: '/_layout/productos'
+      path: '/productos'
+      fullPath: '/productos'
+      preLoaderRoute: typeof LayoutProductosRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/lotes': {
       id: '/_layout/lotes'
       path: '/lotes'
@@ -287,6 +306,7 @@ interface LayoutRouteChildren {
   LayoutBodegasRoute: typeof LayoutBodegasRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutLotesRoute: typeof LayoutLotesRoute
+  LayoutProductosRoute: typeof LayoutProductosRoute
   LayoutProveedoresRoute: typeof LayoutProveedoresRoute
   LayoutRecepcionesRoute: typeof LayoutRecepcionesRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
@@ -298,6 +318,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutBodegasRoute: LayoutBodegasRoute,
   LayoutItemsRoute: LayoutItemsRoute,
   LayoutLotesRoute: LayoutLotesRoute,
+  LayoutProductosRoute: LayoutProductosRoute,
   LayoutProveedoresRoute: LayoutProveedoresRoute,
   LayoutRecepcionesRoute: LayoutRecepcionesRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
