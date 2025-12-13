@@ -375,4 +375,4 @@ npm run build
 
 **Autor**: Sistema Pyllren  
 **Fecha**: Octubre 2025  
-**Versión**: 1.0.0
+**Versión**: 1.0.1
