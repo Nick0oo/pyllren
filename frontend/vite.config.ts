@@ -10,6 +10,17 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      // Forward API calls to FastAPI during local dev
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        // Keep the same path (/api/...) on target
+        rewrite: (p) => p,
+      },
+    },
+  },
   plugins: [
     tanstackRouter({
       target: "react",

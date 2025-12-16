@@ -442,7 +442,7 @@ function LotesTable({ bodegasActivas }: { bodegasActivas: BodegaPublic[] }) {
                   transferMutation.mutate({ lote: selectedLote, destino: Number(destinoId) })
                 }}
                 disabled={!canCreateTransfer || !selectedLote || !destinoId || transferMutation.isPending}
-                isLoading={transferMutation.isPending}
+                loading={transferMutation.isPending}
               >
                 Confirmar transferencia
               </Button>

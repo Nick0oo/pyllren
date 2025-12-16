@@ -10,6 +10,7 @@ from app.api.routes import (
     notifications,
     private,
     productos,
+    reportes,
     proveedores,
     roles,
     sucursales,
@@ -34,6 +35,7 @@ api_router.include_router(bodegas.router)
 api_router.include_router(proveedores.router)
 api_router.include_router(lotes.router)
 api_router.include_router(productos.router)
+api_router.include_router(reportes.router)
 api_router.include_router(roles.router)
 api_router.include_router(movimientos.router)
 api_router.include_router(transferencias.router)
