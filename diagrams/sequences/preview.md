@@ -1,0 +1,47 @@
+```mermaid
+%% Mermaid sequence diagram - Very detailed
+%% File: diagrams/sequences/recepcion-distribuida.mmd
+sequenceDiagram
+  participant FE as Frontend (SPA)
+  participant Proxy as Traefik/Nginx
+  participant API as FastAPI (Auth middleware + LotesController)
+  participant Auth as Auth Dependency (`get_current_user`)
+  participant Scope as Scope Helper (`get_user_scope`)
+  participant DB as Postgres
+  participant Cache as Redis Cache
+  participant Auditoria as Auditoria Table
+
+  Note over FE,Proxy: User submits recepción distribuida (payload with lote_base + distribuciones[])
+  FE->>Proxy: POST /api/v1/lotes/recepcion-distribuida (Authorization: Bearer <token>)
+  Proxy->>API: Forward request
+
+  API->>Auth: Decode token, return current_user
+  API->>Scope: get_user_scope(current_user)
+  Scope-->>API: scope
+
+  API->>API: Validate all target bodegas exist and belong to same sucursal
+  loop for each distribucion in distribuciones
+    API->>DB: SELECT * FROM bodegas WHERE id = distrib.id FOR UPDATE  -- lock each bodega row
+    DB-->>API: bodega record
+    API->>DB: SUM existing occupation for that bodega
+    DB-->>API: current_occupacion
+    API->>API: verify requested items fit in capacity
+    alt any bodega exceeds capacity
+      API-->>FE: 409 Conflict + { error: capacidad_insuficiente_al_distribuir, detalle: bodega_id }
+      break
+    end
+  end
+
+  alt all bodegas ok
+    API->>DB: BEGIN TRANSACTION
+    loop create sub-lotes per bodega
+      API->>DB: INSERT lote_sub, INSERT productos, INSERT movimientos
+      DB-->>API: insert confirmations
+    end
+    API->>Auditoria: write audit entries for each created sub-lote
+    API->>Cache: invalidate relevant keys
+    API->>DB: COMMIT
+    API-->>FE: 200 OK + detalles sub-lotes
+  end
+
+  Note over FE, API: End

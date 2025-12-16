@@ -1,6 +1,6 @@
 """make lote.id_bodega nullable and producto codes optional
 
-Revision ID: f2a1b6c7nullable
+Revision ID: f2a1b6c7_nullable_bodega_and_optional_codes
 Revises: a64b033fab0d
 Create Date: 2025-10-31
 """
@@ -8,7 +8,7 @@ Create Date: 2025-10-31
 from alembic import op
 
 
-revision = "f2a1b6c7nullable"
+revision = "f2a1b6c7_nullable_bodega_and_optional_codes"
 down_revision = "a64b033fab0d"
 branch_labels = None
 depends_on = None

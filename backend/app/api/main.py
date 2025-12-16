@@ -7,11 +7,14 @@ from app.api.routes import (
     lotes,
     login,
     movimientos,
+    notifications,
     private,
     productos,
     proveedores,
     roles,
     sucursales,
+    transferencias,
+    websockets,
     users,
     utils,
 )
@@ -33,8 +36,10 @@ api_router.include_router(lotes.router)
 api_router.include_router(productos.router)
 api_router.include_router(roles.router)
 api_router.include_router(movimientos.router)
+api_router.include_router(transferencias.router)
 api_router.include_router(auditorias.router)
-
+api_router.include_router(notifications.router)
+api_router.include_router(websockets.router)
 
 if settings.ENVIRONMENT == "local":
     api_router.include_router(private.router)

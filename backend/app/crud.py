@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 from app.core.security import get_password_hash, verify_password
 from app.models import (
@@ -19,6 +19,7 @@ from app.models import (
     MovimientoInventario,
     MovimientoInventarioCreate,
     MovimientoInventarioUpdate,
+    Notificacion,
     Producto,
     ProductoCreate,
     ProductoUpdate,
@@ -515,6 +516,17 @@ def get_users_by_rol(
     return list(session.exec(statement).all())
 
 
+def get_admin_users(*, session: Session, skip: int = 0, limit: int = 100) -> list[User]:
+    """Obtener usuarios administradores (superusuarios o rol Administrador id_rol = 1)."""
+    statement = (
+        select(User)
+        .where((User.is_superuser == True) | (User.id_rol == 1))
+        .offset(skip)
+        .limit(limit)
+    )
+    return list(session.exec(statement).all())
+
+
 # -----------------------------------------------------------------------------
 # MOVIMIENTO INVENTARIO
 # -----------------------------------------------------------------------------
@@ -665,3 +677,113 @@ def get_auditorias_by_registro(
         .limit(limit)
     )
     return list(session.exec(statement).all())
+
+
+# -----------------------------------------------------------------------------
+# NOTIFICACIONES
+# -----------------------------------------------------------------------------
+def create_notification(
+    *,
+    session: Session,
+    tipo: str,
+    receptor_id: uuid.UUID,
+    payload: dict[str, Any],
+    prioridad: str = "normal",
+    sucursal_id: int | None = None,
+    bodega_id: int | None = None,
+    meta_data: dict[str, Any] | None = None,
+) -> Notificacion:
+    """Crea una notificación persistente."""
+    data = {
+        "tipo": tipo,
+        "receptor_id": receptor_id,
+        "payload": payload,
+        "prioridad": prioridad,
+        "sucursal_id": sucursal_id,
+        "bodega_id": bodega_id,
+        "meta_data": meta_data,
+    }
+    db_obj = Notificacion.model_validate(data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def get_notifications(
+    *,
+    session: Session,
+    receptor_id: uuid.UUID,
+    leida: bool | None = None,
+    tipo: str | None = None,
+    skip: int = 0,
+    limit: int = 50,
+) -> tuple[list[Notificacion], int]:
+    """Lista notificaciones de un usuario con filtros y total."""
+    base = select(Notificacion).where(Notificacion.receptor_id == receptor_id)
+    count_stmt = select(func.count()).select_from(Notificacion).where(Notificacion.receptor_id == receptor_id)
+
+    if leida is not None:
+        base = base.where(Notificacion.leida == leida)
+        count_stmt = count_stmt.where(Notificacion.leida == leida)
+    if tipo:
+        base = base.where(Notificacion.tipo == tipo)
+        count_stmt = count_stmt.where(Notificacion.tipo == tipo)
+
+    base = base.order_by(Notificacion.leida.asc(), Notificacion.creado_en.desc())
+    count = session.exec(count_stmt).one()
+    notifications = session.exec(base.offset(skip).limit(limit)).all()
+    return list(notifications), int(count)
+
+
+def mark_notification_as_read(
+    *, session: Session, notification_id: int, receptor_id: uuid.UUID
+) -> Notificacion | None:
+    """Marca una notificación como leída si pertenece al usuario."""
+    notification = session.get(Notificacion, notification_id)
+    if not notification or notification.receptor_id != receptor_id:
+        return None
+    notification.leida = True
+    session.add(notification)
+    session.commit()
+    session.refresh(notification)
+    return notification
+
+
+def count_unread_notifications(*, session: Session, receptor_id: uuid.UUID) -> int:
+    statement = (
+        select(func.count())
+        .select_from(Notificacion)
+        .where(Notificacion.receptor_id == receptor_id)
+        .where(Notificacion.leida == False)
+    )
+    count = session.exec(statement).one()
+    return int(count)
+
+
+def delete_notification(*, session: Session, notification_id: int, receptor_id: uuid.UUID) -> bool:
+    """Elimina (hard delete) una notificación si pertenece al usuario."""
+    notification = session.get(Notificacion, notification_id)
+    if not notification or notification.receptor_id != receptor_id:
+        return False
+    session.delete(notification)
+    session.commit()
+    return True
+
+
+def mark_related_notifications_as_read(
+    *, session: Session, receptor_id: uuid.UUID, transferencia_id: int
+) -> int:
+    """Marca como leídas todas las notificaciones relacionadas a una transferencia para el receptor."""
+    stmt = select(Notificacion).where(Notificacion.receptor_id == receptor_id)
+    stmt = stmt.where(Notificacion.meta_data["transferencia_id"].as_integer() == transferencia_id)
+    notifs = session.exec(stmt).all()
+    count = 0
+    for n in notifs:
+        if not n.leida:
+            n.leida = True
+            session.add(n)
+            count += 1
+    if count:
+        session.commit()
+    return count

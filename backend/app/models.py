@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Any
 
 from pydantic import EmailStr
-from sqlalchemy import CheckConstraint, Column, JSON, String
+from sqlalchemy import CheckConstraint, Column, Index, JSON, String
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -558,6 +558,46 @@ class MovimientosInventarioPublic(SQLModel):
 
 
 # -----------------------------------------------------------------------------
+# TRANSFERENCIA ENTRE BODEGAS (modelo dedicado)
+# -----------------------------------------------------------------------------
+class TransferenciaBase(SQLModel):
+    productos: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+    observaciones: str | None = None
+
+
+class TransferenciaCreate(TransferenciaBase):
+    id_bodega_origen: int
+    id_bodega_destino: int
+
+
+class Transferencia(TransferenciaBase, table=True):
+    __tablename__ = "transferencia"
+
+    id_transferencia: int | None = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
+    id_bodega_origen: int = Field(foreign_key="bodega.id_bodega")
+    id_bodega_destino: int = Field(foreign_key="bodega.id_bodega")
+    id_usuario_origen: uuid.UUID = Field(foreign_key="user.id")
+    estado: str = Field(default="pendiente")  # pendiente|confirmada|cancelada
+    fecha_creacion: datetime = Field(default_factory=datetime.now)
+    fecha_actualizacion: datetime = Field(default_factory=datetime.now)
+
+
+class TransferenciaPublic(TransferenciaBase):
+    id_transferencia: int
+    id_bodega_origen: int
+    id_bodega_destino: int
+    id_usuario_origen: uuid.UUID
+    estado: str
+    fecha_creacion: datetime
+    fecha_actualizacion: datetime
+
+
+class TransferenciasPublic(SQLModel):
+    data: list[TransferenciaPublic]
+    count: int
+
+
+# -----------------------------------------------------------------------------
 # AUDITORIA
 # -----------------------------------------------------------------------------
 class AuditoriaBase(SQLModel):
@@ -623,3 +663,45 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=40)
+
+
+# -----------------------------------------------------------------------------
+# NOTIFICACION (para sistema de alertas en tiempo real)
+# -----------------------------------------------------------------------------
+class NotificacionBase(SQLModel):
+    tipo: str = Field(description="Tipo de evento, ej. transferencia:pendiente")
+    payload: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    prioridad: str = Field(default="normal", description="baja|normal|alta")
+    leida: bool = Field(default=False)
+    meta_data: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
+
+
+class Notificacion(NotificacionBase, table=True):
+    __tablename__ = "notificacion"
+    __table_args__ = (
+        Index("ix_notificacion_receptor_leida", "receptor_id", "leida"),
+        Index("ix_notificacion_tipo", "tipo"),
+        Index("ix_notificacion_creado_en", "creado_en"),
+        Index("ix_notificacion_sucursal", "sucursal_id"),
+        Index("ix_notificacion_bodega", "bodega_id"),
+        {'sqlite_autoincrement': True},
+    )
+
+    id: int | None = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
+    receptor_id: uuid.UUID = Field(foreign_key="user.id", description="Usuario destinatario")
+    sucursal_id: int | None = Field(default=None, foreign_key="sucursal.id_sucursal")
+    bodega_id: int | None = Field(default=None, foreign_key="bodega.id_bodega")
+    creado_en: datetime = Field(default_factory=datetime.now)
+
+
+class NotificacionPublic(NotificacionBase):
+    id: int
+    receptor_id: uuid.UUID
+    sucursal_id: int | None = None
+    bodega_id: int | None = None
+    creado_en: datetime
+
+
+class NotificacionesPublic(SQLModel):
+    data: list[NotificacionPublic]
+    count: int

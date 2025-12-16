@@ -1,6 +1,6 @@
 import { Box, Flex, Icon, Text } from "@chakra-ui/react"
 import { Link as RouterLink } from "@tanstack/react-router"
-import { FiBriefcase, FiHome, FiSettings, FiUsers, FiTruck, FiPackage, FiBox } from "react-icons/fi"
+import { FiBriefcase, FiHome, FiSettings, FiUsers, FiTruck, FiPackage, FiBox, FiBell } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
 
 import { usePermissions } from "@/hooks/usePermissions"
@@ -36,9 +36,14 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     { icon: FiBox, title: "Bodegas", path: "/bodegas" }, // Todos los roles de inventario pueden ver bodegas (con filtrado por sucursal)
   ]
 
+  const notificationItems: Item[] = [
+    { icon: FiBell, title: "Notificaciones", path: "/notifications" },
+  ]
+
   const finalItems: Item[] = [
     ...items,
     ...(canAccessModule("inventory") ? inventoryItems : []),
+    ...notificationItems,
     ...(canAccessModule("admin") ? adminItems : []),
   ]
 
