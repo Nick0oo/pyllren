@@ -1,0 +1,27 @@
+```mermaid
+%% Mermaid sequence diagram - Very detailed
+%% File: diagrams/sequences/crear_bodega.mmd
+sequenceDiagram
+  participant FE as Frontend (Admin UI)
+  participant Proxy as Traefik/Nginx
+  participant API as FastAPI (BodegasController)
+  participant Auth as get_current_admin_user dependency
+  participant DB as Postgres
+  participant Cache as Redis
+  participant Auditoria as Auditoria Table
+
+  FE->>Proxy: POST /api/v1/bodegas/ (Authorization: Bearer <token>)
+  Proxy->>API: Forward request
+
+  API->>Auth: get_current_admin_user (validate is_superuser or id_rol==1)
+  alt not admin
+    Auth-->>API: raise 403 Forbidden
+    API-->>FE: 403 Forbidden
+  else admin
+    Auth-->>API: admin_user
+    API->>DB: INSERT INTO bodegas (...) RETURNING id
+    DB-->>API: new_bodega_row
+    API->>Auditoria: write audit (bodega created, user, data)
+    API->>Cache: invalidate `bodegas:list` and `bodegas:stats`
+    API-->>FE: 201 Created + new bodega data
+end

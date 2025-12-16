@@ -13,13 +13,18 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
+import { Dialog } from "@chakra-ui/react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { FiPackage, FiAlertTriangle, FiSearch } from "react-icons/fi"
 import { useState, useEffect } from "react"
 import { z } from "zod"
 
 import { LotesService, BodegasService, type LotePublic, type LotesStats, type BodegaPublic } from "@/client"
+import { request as apiRequest } from "@/client/core/request"
+import { OpenAPI } from "@/client"
+import { handleError } from "@/utils"
+import useAuth from "@/hooks/useAuth"
 
 import {
   PaginationItems,
@@ -165,9 +170,12 @@ function StatsCards() {
   )
 }
 
-function LotesTable() {
+function LotesTable({ bodegasActivas }: { bodegasActivas: BodegaPublic[] }) {
+  const { user: currentUser } = useAuth()
+  const canCreateTransfer = !!(currentUser?.is_superuser || currentUser?.id_rol === 1 || currentUser?.id_rol === 2)
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, q, estado, id_bodega } = Route.useSearch()
+  const queryClient = useQueryClient()
 
   // Convertir "Próximos a vencer" - esto necesita un manejo especial
   // Por ahora, si es "Próximos a vencer", no pasamos estado y filtramos después
@@ -203,6 +211,54 @@ function LotesTable() {
       to: "/lotes",
       search: (prev) => ({ ...prev, page: newPage }),
     })
+  }
+
+  // ------------------------- Transferencia -------------------------
+  const [isTransferOpen, setTransferOpen] = useState(false)
+  const [selectedLote, setSelectedLote] = useState<LotePublic | null>(null)
+  const [destinoId, setDestinoId] = useState<string>("")
+  const [observaciones, setObservaciones] = useState<string>("")
+
+  const bodegasDestinoDisponibles = (lote: LotePublic | null) => {
+    if (!lote) return []
+    const bodegaOrigen = bodegasActivas.find((b) => b.id_bodega === lote.id_bodega)
+    const sucursalId = bodegaOrigen?.id_sucursal
+    if (!sucursalId || !currentUser?.id_sucursal || currentUser.id_sucursal !== sucursalId) {
+      return []
+    }
+    return bodegasActivas.filter(
+      (b) => b.id_sucursal === sucursalId && b.id_bodega !== lote.id_bodega,
+    )
+  }
+
+  const transferMutation = useMutation({
+    mutationFn: async ({ lote, destino }: { lote: LotePublic; destino: number }) => {
+      return apiRequest(OpenAPI, {
+        method: "POST",
+        url: "/api/v1/transferencias/",
+        body: {
+          id_bodega_origen: lote.id_bodega,
+          id_bodega_destino: destino,
+          productos: [{ id_lote: lote.id_lote }],
+          observaciones: observaciones || undefined,
+        },
+      })
+    },
+    onSuccess: () => {
+      setTransferOpen(false)
+      setSelectedLote(null)
+      setDestinoId("")
+      setObservaciones("")
+      queryClient.invalidateQueries({ queryKey: ["lotes"] })
+    },
+    onError: (err: any) => handleError(err),
+  })
+
+  const openTransferModal = (lote: LotePublic) => {
+    const destinos = bodegasDestinoDisponibles(lote)
+    setSelectedLote(lote)
+    setDestinoId(destinos[0]?.id_bodega ? String(destinos[0].id_bodega) : "")
+    setTransferOpen(true)
   }
 
   if (isLoading && !isPlaceholderData) {
@@ -284,7 +340,21 @@ function LotesTable() {
                 </Badge>
               </Table.Cell>
               <Table.Cell>
-                <Text fontSize="sm">--</Text>
+                {canCreateTransfer ? (
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={() => openTransferModal(lote)}
+                    disabled={bodegasDestinoDisponibles(lote).length === 0}
+                    title={bodegasDestinoDisponibles(lote).length === 0 ? "Sin bodegas destino en tu sucursal" : "Transferir lote"}
+                  >
+                    Transferir
+                  </Button>
+                ) : (
+                  <Button size="xs" variant="outline" disabled title="Sin permisos para transferir">
+                    Transferir
+                  </Button>
+                )}
               </Table.Cell>
             </Table.Row>
           ))}
@@ -322,6 +392,65 @@ function LotesTable() {
           </PaginationRoot>
         </Flex>
       )}
+
+      <Dialog.Root open={isTransferOpen} onOpenChange={({ open }) => setTransferOpen(open)}>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content maxW="lg">
+            <Dialog.CloseTrigger />
+            <Dialog.Header>
+              Transferir lote
+            </Dialog.Header>
+            <Dialog.Body>
+            <VStack align="stretch" gap={3}>
+              <Text fontWeight="medium">
+                Lote: {selectedLote?.numero_lote} (Bodega actual: {selectedLote?.bodega_nombre || selectedLote?.id_bodega})
+              </Text>
+              <Select
+                placeholder="Selecciona bodega destino"
+                value={destinoId}
+                onValueChange={(value) => setDestinoId(value)}
+                style={{ maxWidth: "100%" }}
+              >
+                {bodegasDestinoDisponibles(selectedLote).map((bodega) => (
+                  <SelectItem key={bodega.id_bodega} value={String(bodega.id_bodega)}>
+                    {bodega.nombre}
+                  </SelectItem>
+                ))}
+              </Select>
+              <Input
+                placeholder="Observaciones (opcional)"
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+              />
+              {bodegasDestinoDisponibles(selectedLote).length === 0 && (
+                <Text fontSize="sm" color="red.500">
+                  No hay bodegas destino disponibles en tu sucursal para este lote.
+                </Text>
+              )}
+            </VStack>
+            </Dialog.Body>
+            <Dialog.Footer>
+            <Flex justify="flex-end" gap={3} w="full">
+              <Button variant="ghost" onClick={() => setTransferOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                colorPalette="blue"
+                onClick={() => {
+                  if (!selectedLote || !destinoId) return
+                  transferMutation.mutate({ lote: selectedLote, destino: Number(destinoId) })
+                }}
+                disabled={!canCreateTransfer || !selectedLote || !destinoId || transferMutation.isPending}
+                loading={transferMutation.isPending}
+              >
+                Confirmar transferencia
+              </Button>
+            </Flex>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Root>
     </>
   )
 }
@@ -469,7 +598,7 @@ function Lotes() {
           </Button>
         </Flex>
       </Flex>
-      <LotesTable />
+      <LotesTable bodegasActivas={bodegasActivas} />
     </Container>
   )
 }

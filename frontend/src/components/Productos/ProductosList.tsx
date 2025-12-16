@@ -44,7 +44,7 @@ function getProductosQueryOptions({ page, q }: { page: number; q: string }) {
   }
 }
 
-export const Route = createFileRoute("/productos")({
+export const Route = createFileRoute("/_layout/productos")({
   component: ProductosList,
   validateSearch: (s) => productosSearchSchema.parse(s),
 })

@@ -1,0 +1,47 @@
+%% Mermaid component diagram - very detailed
+%% File: diagrams/components.mmd
+graph LR
+  subgraph Edge
+    A[Frontend (SPA - React + TanStack Query)]
+  end
+
+  subgraph Ingress
+    B[Traefik / Nginx (Reverse Proxy, TLS termination, rate-limit)]
+  end
+
+  subgraph App
+    C[Backend (FastAPI)
+    - Auth middleware (OAuth2PasswordBearer)
+    - Route handlers (lotes, bodegas, productos,...)
+    - Business helpers (calcular_ocupacion_bodega, ensure_bodega_in_scope)
+    - Cache invalidation hooks]
+  end
+
+  subgraph Persistence
+    D[(PostgreSQL)
+    - Tables: bodegas, lotes, productos, movimientos, users, roles, auditorias]
+    E[(Redis Cache)
+    - TTLs: lists=5m, stats=1m
+    - Revocation blacklist (optional)]
+  end
+
+  subgraph Extras
+    F[SMTP / Mailer Service]
+    G[Backups / Blob Storage]
+    H[Monitoring / Logging (ELK, Loki, Datadog)]
+  end
+
+  A -->|HTTPS (Bearer token)| B
+  B -->|Proxy / Auth header passthrough| C
+  C -->|SQL (transactions, SELECT ... FOR UPDATE)| D
+  C -->|Cache reads/writes (GET/SET/DEL)| E
+  C -->|Send emails (password recovery, alerts)| F
+  C -->|Write backups / export| G
+  C -->|Logs & metrics (/metrics, traces, logs)| H
+
+  click C "../backend/app/main.py" "Backend bootstrap and middleware"
+  click D "../backend/app/models.py" "DB models overview"
+
+  %% Notes
+  classDef infra fill:#f8f9fa,stroke:#bbb
+  class A,B,C,D,E,F,G,H infra

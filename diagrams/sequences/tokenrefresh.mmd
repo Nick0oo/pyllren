@@ -1,0 +1,32 @@
+%% Mermaid sequence diagram - Recommended detailed token refresh flow
+%% File: diagrams/sequences/tokenrefresh.mmd
+sequenceDiagram
+  %% NOTE: Refresh token flow is RECOMMENDED; the current codebase may not implement it.
+  participant FE as Frontend (SPA)
+  participant Proxy as Traefik/Nginx
+  participant API as FastAPI (Auth routes)
+  participant DB as Postgres
+  participant Cache as Redis (optional revocation)
+  participant Security as Security helpers (`create_access_token`)
+
+  Note over FE: Recommended secure approach
+  FE->>Proxy: POST /api/v1/login/refresh  (HttpOnly cookie: RefreshToken)
+  Proxy->>API: Forward request
+
+  API->>Cache: Validate refresh token jti not revoked (if using blacklist)
+  alt revoked or invalid
+    API-->>FE: 401 Unauthorized (refresh invalid)
+  else valid
+    API->>DB: Optionally validate refresh session record (user_sessions)
+    DB-->>API: session valid
+    API->>Security: create_access_token(subject=user.id, short_expiry)
+    Security-->>API: new access_token
+    API-->>FE: 200 OK { access_token }
+    Note over FE: FE replaces in-memory token and continues; refresh cookie remains HttpOnly
+  end
+
+  %% Optional: revoke on logout
+  FE->>Proxy: POST /api/v1/login/logout (HttpOnly cookie included)
+  Proxy->>API: Forward logout request
+  API->>Cache: add refresh jti to blacklist OR mark session revoked in DB
+  API-->>FE: 200 OK

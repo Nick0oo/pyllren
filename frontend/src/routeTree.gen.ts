@@ -16,9 +16,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
+import { Route as LayoutReportesRouteImport } from './routes/_layout/reportes'
 import { Route as LayoutRecepcionesRouteImport } from './routes/_layout/recepciones'
 import { Route as LayoutProveedoresRouteImport } from './routes/_layout/proveedores'
 import { Route as LayoutProductosRouteImport } from './routes/_layout/productos'
+import { Route as LayoutNotificationsRouteImport } from './routes/_layout/notifications'
 import { Route as LayoutLotesRouteImport } from './routes/_layout/lotes'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutBodegasRouteImport } from './routes/_layout/bodegas'
@@ -58,6 +60,11 @@ const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutReportesRoute = LayoutReportesRouteImport.update({
+  id: '/reportes',
+  path: '/reportes',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutRecepcionesRoute = LayoutRecepcionesRouteImport.update({
   id: '/recepciones',
   path: '/recepciones',
@@ -71,6 +78,11 @@ const LayoutProveedoresRoute = LayoutProveedoresRouteImport.update({
 const LayoutProductosRoute = LayoutProductosRouteImport.update({
   id: '/productos',
   path: '/productos',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutNotificationsRoute = LayoutNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutLotesRoute = LayoutLotesRouteImport.update({
@@ -103,9 +115,11 @@ export interface FileRoutesByFullPath {
   '/bodegas': typeof LayoutBodegasRoute
   '/items': typeof LayoutItemsRoute
   '/lotes': typeof LayoutLotesRoute
+  '/notifications': typeof LayoutNotificationsRoute
   '/productos': typeof LayoutProductosRoute
   '/proveedores': typeof LayoutProveedoresRoute
   '/recepciones': typeof LayoutRecepcionesRoute
+  '/reportes': typeof LayoutReportesRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
 }
@@ -118,9 +132,11 @@ export interface FileRoutesByTo {
   '/bodegas': typeof LayoutBodegasRoute
   '/items': typeof LayoutItemsRoute
   '/lotes': typeof LayoutLotesRoute
+  '/notifications': typeof LayoutNotificationsRoute
   '/productos': typeof LayoutProductosRoute
   '/proveedores': typeof LayoutProveedoresRoute
   '/recepciones': typeof LayoutRecepcionesRoute
+  '/reportes': typeof LayoutReportesRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
 }
@@ -135,9 +151,11 @@ export interface FileRoutesById {
   '/_layout/bodegas': typeof LayoutBodegasRoute
   '/_layout/items': typeof LayoutItemsRoute
   '/_layout/lotes': typeof LayoutLotesRoute
+  '/_layout/notifications': typeof LayoutNotificationsRoute
   '/_layout/productos': typeof LayoutProductosRoute
   '/_layout/proveedores': typeof LayoutProveedoresRoute
   '/_layout/recepciones': typeof LayoutRecepcionesRoute
+  '/_layout/reportes': typeof LayoutReportesRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
 }
@@ -152,9 +170,11 @@ export interface FileRouteTypes {
     | '/bodegas'
     | '/items'
     | '/lotes'
+    | '/notifications'
     | '/productos'
     | '/proveedores'
     | '/recepciones'
+    | '/reportes'
     | '/settings'
     | '/'
   fileRoutesByTo: FileRoutesByTo
@@ -167,9 +187,11 @@ export interface FileRouteTypes {
     | '/bodegas'
     | '/items'
     | '/lotes'
+    | '/notifications'
     | '/productos'
     | '/proveedores'
     | '/recepciones'
+    | '/reportes'
     | '/settings'
     | '/'
   id:
@@ -183,9 +205,11 @@ export interface FileRouteTypes {
     | '/_layout/bodegas'
     | '/_layout/items'
     | '/_layout/lotes'
+    | '/_layout/notifications'
     | '/_layout/productos'
     | '/_layout/proveedores'
     | '/_layout/recepciones'
+    | '/_layout/reportes'
     | '/_layout/settings'
     | '/_layout/'
   fileRoutesById: FileRoutesById
@@ -249,6 +273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutSettingsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/reportes': {
+      id: '/_layout/reportes'
+      path: '/reportes'
+      fullPath: '/reportes'
+      preLoaderRoute: typeof LayoutReportesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/recepciones': {
       id: '/_layout/recepciones'
       path: '/recepciones'
@@ -268,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/productos'
       fullPath: '/productos'
       preLoaderRoute: typeof LayoutProductosRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/notifications': {
+      id: '/_layout/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof LayoutNotificationsRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/lotes': {
@@ -306,9 +344,11 @@ interface LayoutRouteChildren {
   LayoutBodegasRoute: typeof LayoutBodegasRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutLotesRoute: typeof LayoutLotesRoute
+  LayoutNotificationsRoute: typeof LayoutNotificationsRoute
   LayoutProductosRoute: typeof LayoutProductosRoute
   LayoutProveedoresRoute: typeof LayoutProveedoresRoute
   LayoutRecepcionesRoute: typeof LayoutRecepcionesRoute
+  LayoutReportesRoute: typeof LayoutReportesRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
@@ -318,9 +358,11 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutBodegasRoute: LayoutBodegasRoute,
   LayoutItemsRoute: LayoutItemsRoute,
   LayoutLotesRoute: LayoutLotesRoute,
+  LayoutNotificationsRoute: LayoutNotificationsRoute,
   LayoutProductosRoute: LayoutProductosRoute,
   LayoutProveedoresRoute: LayoutProveedoresRoute,
   LayoutRecepcionesRoute: LayoutRecepcionesRoute,
+  LayoutReportesRoute: LayoutReportesRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
 }

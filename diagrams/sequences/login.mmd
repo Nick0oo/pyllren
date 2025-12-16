@@ -1,0 +1,25 @@
+%% Mermaid sequence diagram - Very detailed
+%% File: diagrams/sequences/login.mmd
+sequenceDiagram
+  participant FE as Frontend (SPA)
+  participant Proxy as Traefik/Nginx
+  participant API as FastAPI (Auth routes)
+  participant DB as Postgres
+  participant Security as Security helpers (`verify_password`, `create_access_token`)
+
+  Note over FE,API: User submits credentials (username + password)
+  FE->>Proxy: POST /api/v1/login/access-token (form data)
+  Proxy->>API: Forward request
+
+  API->>DB: SELECT user by username/email
+  DB-->>API: user row (including hashed_password)
+  API->>Security: verify_password(provided, user.hashed_password)
+  alt password ok
+    Security-->>API: True
+    API->>Security: create_access_token(subject=user.id, expires_delta=ACCESS_TOKEN_EXPIRE_MINUTES)
+    Security-->>API: access_token (JWT HS256)
+    API-->>FE: 200 OK { access_token, token_type: "bearer" }
+    Note over FE: FE stores token in `localStorage.setItem('access_token', token)`
+  else invalid credentials
+    API-->>FE: 400/401 Invalid credentials
+  end
