@@ -373,38 +373,172 @@ def get_user_scope(user: User) -> dict | None:
 
 ### Requisitos Previos
 
-- Python 3.12+
-- Node.js 20+
-- PostgreSQL 16+
-- Redis 7+
-- Docker (opcional)
+- **Docker** y **Docker Compose** (Recomendado - setup completo en 3 minutos)
+- **Alternativa manual**: Python 3.10+, Node.js 20+, PostgreSQL 17+, Redis 7+
 
-### Configuración Backend
+---
+
+### 🐳 Opción 1: Docker Compose (Recomendado)
+
+Esta es la forma más rápida y sencilla de ejecutar todo el proyecto. Con un solo comando levantarás:
+- ✅ PostgreSQL 17 con persistencia de datos
+- ✅ Redis 7 con persistencia de datos  
+- ✅ Backend (FastAPI)
+- ✅ Frontend (React + Nginx)
+- ✅ Adminer (gestor de base de datos)
+- ✅ Migraciones automáticas
+
+#### Paso 1: Configurar Variables de Entorno
+
+```bash
+# 1. Copiar el archivo de ejemplo
+cp env.example .env
+
+# 2. Editar el archivo .env con tus valores
+# En Windows: notepad .env
+# En Linux/Mac: nano .env o vim .env
+```
+
+**Variables mínimas requeridas:**
+```bash
+# Base de datos
+POSTGRES_PASSWORD=tu_password_seguro_aqui
+POSTGRES_USER=postgres
+POSTGRES_DB=app
+
+# Backend
+SECRET_KEY=tu_secret_key_de_al_menos_32_caracteres
+FIRST_SUPERUSER=admin@example.com
+FIRST_SUPERUSER_PASSWORD=tu_password_admin
+```
+
+💡 **Tip**: Genera un SECRET_KEY seguro con:
+```bash
+# En Linux/Mac/Git Bash:
+openssl rand -hex 32
+
+# En PowerShell:
+-join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | % {[char]$_})
+```
+
+#### Paso 2: Levantar Todos los Servicios
+
+```bash
+# Construir imágenes y levantar contenedores
+docker-compose up --build -d
+
+# Ver logs en tiempo real (Ctrl+C para salir)
+docker-compose logs -f
+
+# Ver logs de un servicio específico
+docker-compose logs -f backend
+docker-compose logs -f frontend
+```
+
+#### Paso 3: Acceder a los Servicios
+
+Una vez que todos los servicios estén levantados (toma ~2-3 minutos la primera vez):
+
+| Servicio | URL | Descripción |
+|----------|-----|-------------|
+| 🎨 **Frontend** | http://localhost | Interfaz de usuario principal |
+| 🚀 **Backend API** | http://localhost:8000 | API REST |
+| 📚 **API Docs (Swagger)** | http://localhost:8000/docs | Documentación interactiva |
+| 📊 **Adminer** | http://localhost:8080 | Gestor de base de datos |
+| 🗄️ **PostgreSQL** | localhost:5432 | Base de datos (acceso directo) |
+| 💾 **Redis** | localhost:6379 | Cache (acceso directo) |
+
+**Credenciales por defecto:**
+- **Usuario Admin**: El configurado en `FIRST_SUPERUSER` / `FIRST_SUPERUSER_PASSWORD`
+- **Adminer**: usa las credenciales de PostgreSQL del `.env`
+
+#### Comandos Útiles
+
+```bash
+# Detener todos los servicios (mantiene los datos)
+docker-compose down
+
+# Detener y eliminar volúmenes (⚠️ ELIMINA TODOS LOS DATOS)
+docker-compose down -v
+
+# Reiniciar un servicio específico
+docker-compose restart backend
+
+# Ver estado de los servicios
+docker-compose ps
+
+# Reconstruir solo un servicio
+docker-compose up --build -d backend
+
+# Ver uso de recursos
+docker stats
+
+# Ejecutar comandos dentro del contenedor backend
+docker-compose exec backend bash
+docker-compose exec backend alembic upgrade head
+
+# Ver logs desde el inicio
+docker-compose logs --tail=100 backend
+```
+
+#### Verificar Persistencia de Datos
+
+Los datos de PostgreSQL y Redis persisten automáticamente en volúmenes de Docker. Para verificarlo:
+
+```bash
+# 1. Crear algunos datos en la aplicación
+# 2. Detener los contenedores
+docker-compose down
+
+# 3. Volver a levantar
+docker-compose up -d
+
+# 4. Los datos siguen ahí ✅
+```
+
+**Para backup de los volúmenes:**
+```bash
+# Backup de PostgreSQL
+docker-compose exec db pg_dump -U postgres app > backup.sql
+
+# Restaurar backup
+docker-compose exec -T db psql -U postgres app < backup.sql
+```
+
+---
+
+### 🔧 Opción 2: Instalación Manual
+
+Si prefieres ejecutar los servicios sin Docker:
+
+#### Configuración Backend
 
 ```bash
 # Clonar repositorio
 git clone https://github.com/Nick0oo/pyllren.git
 cd pyllren/backend
 
-# Crear entorno virtual
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+# Instalar uv (gestor de dependencias)
+# Windows PowerShell:
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+# Linux/Mac:
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Instalar dependencias
-pip install -r requirements.txt
+# Instalar dependencias con uv
+uv sync
 
 # Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus credenciales
+cp ../env.example ../.env
+# Editar ../.env con tus credenciales
 
-# Ejecutar migraciones
-alembic upgrade head
+# Ejecutar migraciones (requiere PostgreSQL corriendo)
+uv run alembic upgrade head
 
 # Iniciar servidor
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv run fastapi run --reload app/main.py
 ```
 
-### Configuración Frontend
+#### Configuración Frontend
 
 ```bash
 cd ../frontend
@@ -412,24 +546,61 @@ cd ../frontend
 # Instalar dependencias
 npm install
 
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con la URL del backend
-
 # Iniciar servidor de desarrollo
-npm run dev
+VITE_API_URL=http://localhost:8000 npm run dev
 ```
 
-### Docker Compose (Recomendado)
+**Servicios requeridos:**
+- PostgreSQL corriendo en `localhost:5432`
+- Redis corriendo en `localhost:6379`
+
+---
+
+### 🐛 Troubleshooting
+
+#### El puerto 80 está ocupado
 
 ```bash
-# Desde la raíz del proyecto
-docker-compose up -d
+# Cambiar el puerto del frontend en docker-compose.yml:
+ports:
+  - "8080:80"  # Ahora accede en http://localhost:8080
+```
 
-# Acceder a:
-# Frontend: http://localhost:5173
-# Backend: http://localhost:8000
-# Docs: http://localhost:8000/docs
+#### Error "Variable not set"
+
+```bash
+# Asegúrate de que el archivo .env existe y tiene todas las variables
+cat .env  # Linux/Mac
+type .env  # Windows CMD
+```
+
+#### Backend no se conecta a la BD
+
+```bash
+# Verificar que PostgreSQL esté corriendo
+docker-compose ps
+
+# Ver logs de la base de datos
+docker-compose logs db
+
+# Verificar conectividad
+docker-compose exec backend ping db
+```
+
+#### Limpiar todo y empezar de cero
+
+```bash
+# Detener servicios y eliminar volúmenes
+docker-compose down -v
+
+# Eliminar imágenes (opcional)
+docker-compose down --rmi all
+
+# Limpiar caché de Docker
+docker system prune -a
+
+# Volver a construir
+docker-compose up --build -d
 ```
 
 ---
