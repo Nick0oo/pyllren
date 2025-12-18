@@ -68,19 +68,22 @@ class Settings(BaseSettings):
             path=self.POSTGRES_DB,
         )
 
+ 
+    SMTP_HOST: str = "smtp.resend.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = "resend"
+    SMTP_PASSWORD: str = ""
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
-    SMTP_PORT: int = 587
-    SMTP_HOST: str | None = None
-    SMTP_USER: str | None = None
-    SMTP_PASSWORD: str | None = None
     EMAILS_FROM_EMAIL: EmailStr | None = None
-    EMAILS_FROM_NAME: EmailStr | None = None
+    EMAILS_FROM_NAME: str | None = None
 
     @model_validator(mode="after")
-    def _set_default_emails_from(self) -> Self:
+    def _set_email_defaults(self) -> Self:
+        # Set default EMAILS_FROM_NAME if not provided
         if not self.EMAILS_FROM_NAME:
             self.EMAILS_FROM_NAME = self.PROJECT_NAME
+        
         return self
 
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
@@ -88,7 +91,13 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def emails_enabled(self) -> bool:
-        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+        """Verifica si el servicio de email está configurado correctamente."""
+        return bool(
+            self.SMTP_HOST
+            and self.SMTP_PASSWORD
+            and self.SMTP_USER
+            and self.EMAILS_FROM_EMAIL
+        )
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"
     FIRST_SUPERUSER: EmailStr
