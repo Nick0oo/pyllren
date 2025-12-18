@@ -31,6 +31,9 @@ ENV PYTHONPATH=/app
 
 COPY ./scripts /app/scripts
 
+# Normalizar finales de línea de scripts (evitar problemas CRLF en Windows)
+RUN sed -i 's/\r$//' /app/scripts/*.sh || true
+
 COPY ./pyproject.toml ./uv.lock ./alembic.ini /app/
 
 COPY ./app /app/app

@@ -505,6 +505,19 @@ docker-compose exec db pg_dump -U postgres app > backup.sql
 docker-compose exec -T db psql -U postgres app < backup.sql
 ```
 
+#### Notas sobre Docker para desarrollo
+
+- `docker-compose.yml` define el stack de producción local (imágenes optimizadas).
+- `docker-compose.override.yml` ajusta puertos y comandos para desarrollo:
+  - Backend: usa `fastapi run --reload app/main.py` con recarga en caliente.
+  - Frontend: expone el dashboard en `http://localhost:5173`.
+- Los `.dockerignore` reducen el contexto de build:
+  - `backend/.dockerignore`: excluye venvs, cachés, tests, reportes de cobertura y archivos de tooling.
+  - `frontend/.dockerignore`: excluye `node_modules`, `dist`, logs y artefactos de tests/Playwright.
+- Para un ciclo rápido en desarrollo:
+  - Usa `docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build -d`.
+  - Modifica código en `backend/` y `frontend/`; los cambios se reflejan sin reconstruir toda la imagen.
+
 ---
 
 ### 🔧 Opción 2: Instalación Manual

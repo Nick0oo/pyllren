@@ -1,8 +1,39 @@
-# Python
-__pycache__
-app.egg-info
-*.pyc
-.mypy_cache
-.coverage
-htmlcov
-.venv
+###########################
+# Python / Backend build  #
+###########################
+
+# Bytecode / caches
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Coverage / reports
+.coverage*
+htmlcov/
+coverage.xml
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Local tooling / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Logs / tmp
+*.log
+*.tmp
+*.swp
+
+# Git
+.git
+.gitignore
+
+# Project specific (no necesarios dentro de la imagen de runtime)
+# OJO: no ignorar `tests/` porque el Dockerfile hace:
+#   COPY ./tests /app/tests
+# y debe existir en el contexto de build.

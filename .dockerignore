@@ -1,0 +1,47 @@
+###########################
+# Root Docker ignore      #
+# (útil si haces `docker build .`) #
+###########################
+
+# Control de versiones
+.git
+.gitignore
+
+# Entornos virtuales / Python
+backend/.venv/
+backend/venv/
+backend/env/
+backend/__pycache__/
+backend/.mypy_cache/
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/htmlcov/
+backend/.coverage*
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.turbo/
+frontend/.cache/
+frontend/coverage/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/test-results/
+
+# IDE / SO
+.DS_Store
+.idea/
+.vscode/
+
+# Logs y temporales
+*.log
+*.tmp
+*.swp
+
+# Artefactos de CI / docs
+.github/
+**/README*.md
+docs/
+
+
