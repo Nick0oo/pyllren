@@ -163,6 +163,102 @@ $ alembic upgrade head
 
 If you don't want to start with the default models and want to remove them / modify them, from the beginning, without having any previous revision, you can remove the revision files (`.py` Python files) under `./backend/app/alembic/versions/`. And then create a first migration as described above.
 
+## Email Configuration
+
+This project supports email sending for password recovery and new account notifications using SMTP. 
+The email service uses `smtplib` and `EmailMessage` as shown in the [FastAPI email tutorial](https://tutorial101.blogspot.com/2023/02/python-fastapi-how-to-send-email-using.html).
+
+### Required Variables
+
+* `SMTP_HOST`: SMTP server hostname (e.g., `smtp.resend.com`, `pro.turbo-smtp.com`, `smtp.gmail.com`)
+* `SMTP_PORT`: SMTP server port (usually 587 for TLS, 465 for SSL)
+* `SMTP_USER`: SMTP username (for Resend, always `resend`; for others, usually your email or API key)
+* `SMTP_PASSWORD`: SMTP password (for Resend, use your API Key; for Gmail, use an App Password)
+* `EMAILS_FROM_EMAIL`: The email address that will appear as the sender (must be from a verified domain)
+* `EMAILS_FROM_NAME`: Name that appears as the sender (defaults to `PROJECT_NAME`)
+
+### Resend Configuration (Recommended - No Firewall Issues)
+
+Resend is a modern SMTP service that works great from localhost. See [official documentation](https://resend.com/docs/send-with-smtp):
+
+```env
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=587
+SMTP_USER=resend
+SMTP_PASSWORD=tu_api_key_de_resend
+SMTP_TLS=True
+SMTP_SSL=False
+EMAILS_FROM_EMAIL=noreply@tudominio.com
+EMAILS_FROM_NAME=Tu Proyecto
+```
+
+**Important:** 
+- `SMTP_USER` must be exactly `resend` (literal)
+- `SMTP_PASSWORD` is your Resend API Key
+- Your domain must be verified in Resend before sending emails
+
+**Alternative ports if 587 is blocked:**
+- Port 465 with SSL: `SMTP_PORT=465`, `SMTP_SSL=True`, `SMTP_TLS=False`
+- Port 2587 with TLS: `SMTP_PORT=2587`, `SMTP_TLS=True`, `SMTP_SSL=False`
+
+See `backend/docs/RESEND_CONFIGURATION.md` for detailed instructions.
+
+### Gmail Configuration
+
+For Gmail, you need to generate an App Password:
+
+1. Go to [Google Account Settings](https://myaccount.google.com/)
+2. Navigate to **Security** → **2-Step Verification** (must be enabled)
+3. Go to **App passwords**
+4. Generate a new app password for "Mail"
+5. Use this password as `SMTP_PASSWORD`
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu_email@gmail.com
+SMTP_PASSWORD=tu_app_password_de_16_caracteres
+SMTP_TLS=True
+SMTP_SSL=False
+EMAILS_FROM_EMAIL=tu_email@gmail.com
+EMAILS_FROM_NAME=Tu Proyecto
+```
+
+### Outlook/Hotmail Configuration
+
+```env
+SMTP_HOST=smtp-mail.outlook.com
+SMTP_PORT=587
+SMTP_USER=tu_email@outlook.com
+SMTP_PASSWORD=tu_contraseña
+SMTP_TLS=True
+SMTP_SSL=False
+EMAILS_FROM_EMAIL=tu_email@outlook.com
+EMAILS_FROM_NAME=Tu Proyecto
+```
+
+### Other SMTP Servers
+
+You can use any SMTP server (SendGrid, Mailgun, etc.):
+
+```env
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASSWORD=tu_api_key
+SMTP_TLS=True
+SMTP_SSL=False
+EMAILS_FROM_EMAIL=noreply@tudominio.com
+EMAILS_FROM_NAME=Tu Proyecto
+```
+
+### SSL vs TLS
+
+* **Port 587 with TLS** (recommended): `SMTP_TLS=True`, `SMTP_SSL=False`
+* **Port 465 with SSL**: `SMTP_PORT=465`, `SMTP_SSL=True`, `SMTP_TLS=False`
+
+If email configuration is missing, the application will return a clear error message indicating which variables need to be configured.
+
 ## Email Templates
 
 The email templates are in `./backend/app/email-templates/`. Here, there are two directories: `build` and `src`. The `src` directory contains the source files that are used to build the final email templates. The `build` directory contains the final email templates that are used by the application.
