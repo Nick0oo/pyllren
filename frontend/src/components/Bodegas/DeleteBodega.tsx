@@ -2,7 +2,6 @@ import { Button, DialogTitle, Text, IconButton } from "@chakra-ui/react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
-import type { BodegaPublicExtended, BodegaPublic } from "@/hooks/useBodegas"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 import { useBodegas, type BodegaPublicExtended } from "@/hooks/useBodegas"
+import type { BodegaPublic } from "@/client"
 
 interface DeleteBodegaProps {
   bodega: BodegaPublicExtended | BodegaPublic
@@ -22,7 +22,7 @@ interface DeleteBodegaProps {
 
 const DeleteBodega = ({ bodega }: DeleteBodegaProps) => {
   const [isOpen, setIsOpen] = useState(false)
-  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const { showErrorToast } = useCustomToast()
   const { deleteMutation } = useBodegas()
   const {
     handleSubmit,

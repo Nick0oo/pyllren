@@ -5,6 +5,7 @@ import {
   Input,
   Text,
 } from "@chakra-ui/react"
+import { InputGroup } from "@/components/ui/input-group"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { FiSearch } from "react-icons/fi"
 import { useState, useEffect } from "react"
@@ -64,7 +65,7 @@ function Bodegas() {
       
       navigate({
         to: "/bodegas",
-        search: searchParams,
+        search: searchParams as any,
       })
     }, 500)
 
@@ -103,14 +104,14 @@ function Bodegas() {
       {/* Buscador y Filtros */}
       <Flex justify="space-between" align="center" mb={4} wrap="wrap" gap={4}>
         <Flex align="center" gap={4} flex={1} minW="300px">
-          <Input
-            placeholder="Buscar por nombre, tipo o ubicación..."
-            size="sm"
-            flex={1}
-            leftElement={<FiSearch />}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <InputGroup flex="1" startElement={<FiSearch />}>
+            <Input
+              placeholder="Buscar por nombre, tipo o ubicación..."
+              size="sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
           <select
             style={{
               width: "150px",

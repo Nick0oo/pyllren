@@ -17,8 +17,8 @@ const LotesList = () => {
     )
   }
 
-  const lotes = lotesQuery.data?.data || []
-  const count = lotesQuery.data?.count || 0
+  const lotes = (lotesQuery.data as any)?.data || []
+  const count = (lotesQuery.data as any)?.count || 0
 
   return (
     <Box p={4} borderWidth="1px" borderRadius="md" bg="bg.surface">

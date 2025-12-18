@@ -9,13 +9,14 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { InputGroup } from "@/components/ui/input-group"
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { FiSearch, FiTruck, FiUsers, FiPackage, FiCalendar } from "react-icons/fi"
 import { useState, useEffect } from "react"
 import { z } from "zod"
 
-import { ProveedoresService, type ProveedorPublic } from "@/client"
+import { ProveedoresService } from "@/client"
 import AddProveedor from "@/components/Proveedores/AddProveedor"
 import { ProveedorActionsMenu } from "@/components/Common/ProveedorActionsMenu"
 import PendingProveedores from "@/components/Pending/PendingProveedores"
@@ -260,14 +261,14 @@ function Proveedores() {
           <Text fontSize="sm" fontWeight="medium">
             Filtros de búsqueda
           </Text>
-          <Input
-            placeholder="Buscar por nombre, NIT o contacto..."
-            size="sm"
-            maxW="300px"
-            leftElement={<FiSearch />}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <InputGroup flex="1" startElement={<FiSearch />} maxW="300px">
+            <Input
+              placeholder="Buscar por nombre, NIT o contacto..."
+              size="sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
         </Flex>
         <AddProveedor />
       </Flex>

@@ -57,7 +57,8 @@ const AddSucursal = () => {
   })
 
   const postSucursal = async (payload: SucursalCreatePayload): Promise<SucursalPublic> => {
-    const token = (await OpenAPI.TOKEN?.()) || ""
+    const tokenFn = OpenAPI.TOKEN
+    const token = tokenFn ? (typeof tokenFn === 'function' ? await tokenFn({} as any) : tokenFn) : ""
     const res = await fetch(`${OpenAPI.BASE}/api/v1/sucursales/`, {
       method: "POST",
       headers: {
@@ -73,7 +74,9 @@ const AddSucursal = () => {
       } catch {
         body = undefined
       }
-      throw new ApiError({ url: res.url, status: res.status, statusText: res.statusText, body })
+      const request = { method: "POST", url: "/api/v1/sucursales/", body: payload }
+      const response = { url: res.url, status: res.status, statusText: res.statusText, body }
+      throw new ApiError(request as any, response as any, res.statusText)
     }
     return res.json()
   }

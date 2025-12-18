@@ -13,7 +13,7 @@ const StatsCards = () => {
         {Array.from({ length: 4 }).map((_, index) => (
           <Card.Root key={index} p={4}>
             <Card.Body>
-              <SkeletonText noOfLines={2} spacing="2" skeletonHeight="4" />
+              <SkeletonText noOfLines={2} />
             </Card.Body>
           </Card.Root>
         ))}

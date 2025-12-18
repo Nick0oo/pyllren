@@ -1,6 +1,4 @@
 import {
-  Badge,
-  Button,
   Container,
   Flex,
   Heading,
@@ -15,7 +13,7 @@ import { FiSearch } from "react-icons/fi"
 import { z } from "zod"
 import ProductoRow from "./ProductoRow"
 import { ProductosService } from "@/client/ProductosService"
-import { BodegasService, type BodegaPublic } from "@/client"
+import { BodegasService } from "@/client"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -52,9 +50,8 @@ export const Route = createFileRoute("/_layout/productos")({
 export default function ProductosList() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, q } = Route.useSearch()
-  const [searchQuery, setSearchQuery] = (q != null) ? [q, (v: string) => navigate({ to: "/productos", search: { page: 1, q: v }})] : ["", (v: string) => navigate({ to: "/productos", search: { page: 1, q: v }})]
 
-  const { data, isLoading, isPlaceholderData } = useQuery({
+  const { data, isLoading } = useQuery({
     ...getProductosQueryOptions({ page: page || 1, q: q || "" }),
     placeholderData: (prev) => prev,
   })
@@ -63,12 +60,10 @@ export default function ProductosList() {
   const count = data?.count ?? 0
 
   // Bodegas for filter (optional)
-  const { data: bodegasData } = useQuery({
+  useQuery({
     queryFn: () => BodegasService.readBodegas({ skip: 0, limit: 1000 }),
     queryKey: ["bodegas"],
   })
-
-  const bodegas = bodegasData?.data ?? []
 
   const setPage = (newPage: number) => {
     navigate({ to: "/productos", search: (prev) => ({ ...prev, page: newPage }) })

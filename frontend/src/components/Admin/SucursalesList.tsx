@@ -49,8 +49,8 @@ export default function SucursalesList() {
           </Table.Row>
         </Table.Header>
         <Table.Body>
-          {sucursales.map((s) => {
-            const nombre = (s as any).nombre_sucursal ?? (s as any).nombre ?? ""
+          {sucursales.map((s: any) => {
+            const nombre = s.nombre_sucursal ?? s.nombre ?? ""
             return (
             <Table.Row key={s.id_sucursal} opacity={isPlaceholderData ? 0.5 : 1}>
               <Table.Cell>{nombre}</Table.Cell>

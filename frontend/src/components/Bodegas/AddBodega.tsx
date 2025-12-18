@@ -32,7 +32,7 @@ const TIPOS_BODEGA = ["Principal", "Secundaria", "De tránsito"]
 
 const AddBodega = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const { showErrorToast } = useCustomToast()
   const { createMutation } = useBodegas()
   const { isAdmin } = usePermissions()
   const alcance = useAlcance()
@@ -76,7 +76,9 @@ const AddBodega = () => {
     // Validaciones adicionales
     if (
       temperaturaMin !== null &&
+      temperaturaMin !== undefined &&
       temperaturaMax !== null &&
+      temperaturaMax !== undefined &&
       temperaturaMin >= temperaturaMax
     ) {
       showErrorToast("La temperatura mínima debe ser menor que la máxima")
@@ -85,19 +87,21 @@ const AddBodega = () => {
 
     if (
       humedadMin !== null &&
+      humedadMin !== undefined &&
       humedadMax !== null &&
+      humedadMax !== undefined &&
       humedadMin >= humedadMax
     ) {
       showErrorToast("La humedad mínima debe ser menor que la máxima")
       return
     }
 
-    if (humedadMin !== null && (humedadMin < 0 || humedadMin > 100)) {
+    if (humedadMin !== null && humedadMin !== undefined && (humedadMin < 0 || humedadMin > 100)) {
       showErrorToast("La humedad mínima debe estar entre 0 y 100")
       return
     }
 
-    if (humedadMax !== null && (humedadMax < 0 || humedadMax > 100)) {
+    if (humedadMax !== null && humedadMax !== undefined && (humedadMax < 0 || humedadMax > 100)) {
       showErrorToast("La humedad máxima debe estar entre 0 y 100")
       return
     }

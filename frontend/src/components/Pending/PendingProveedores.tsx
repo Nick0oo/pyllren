@@ -8,7 +8,7 @@ const PendingProveedores = () => {
         {Array.from({ length: 4 }).map((_, index) => (
           <Card.Root key={index} p={4}>
             <Card.Body>
-              <SkeletonText noOfLines={2} spacing="2" skeletonHeight="4" />
+              <SkeletonText noOfLines={2} />
             </Card.Body>
           </Card.Root>
         ))}
@@ -32,28 +32,28 @@ const PendingProveedores = () => {
           {Array.from({ length: 5 }).map((_, index) => (
             <Table.Row key={index}>
               <Table.Cell>
-                <SkeletonText noOfLines={2} spacing="1" skeletonHeight="3" />
+                <SkeletonText noOfLines={2} />
               </Table.Cell>
               <Table.Cell>
-                <SkeletonText noOfLines={1} skeletonHeight="3" />
+                <SkeletonText noOfLines={1} />
               </Table.Cell>
               <Table.Cell>
-                <SkeletonText noOfLines={1} skeletonHeight="3" />
+                <SkeletonText noOfLines={1} />
               </Table.Cell>
               <Table.Cell>
-                <SkeletonText noOfLines={2} spacing="1" skeletonHeight="3" />
+                <SkeletonText noOfLines={2} />
               </Table.Cell>
               <Table.Cell>
-                <SkeletonText noOfLines={1} skeletonHeight="3" />
+                <SkeletonText noOfLines={1} />
               </Table.Cell>
               <Table.Cell>
-                <SkeletonText noOfLines={1} skeletonHeight="3" />
+                <SkeletonText noOfLines={1} />
               </Table.Cell>
               <Table.Cell>
-                <SkeletonText noOfLines={1} skeletonHeight="3" />
+                <SkeletonText noOfLines={1} />
               </Table.Cell>
               <Table.Cell>
-                <SkeletonText noOfLines={1} skeletonHeight="3" />
+                <SkeletonText noOfLines={1} />
               </Table.Cell>
             </Table.Row>
           ))}

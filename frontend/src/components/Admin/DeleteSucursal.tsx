@@ -31,7 +31,8 @@ const DeleteSucursal = ({ sucursal }: DeleteSucursalProps) => {
   } = useForm()
 
   const deleteSucursal = async (id: number) => {
-    const token = (await OpenAPI.TOKEN?.()) || ""
+    const tokenFn = OpenAPI.TOKEN
+    const token = tokenFn ? (typeof tokenFn === 'function' ? await tokenFn({} as any) : tokenFn) : ""
     const res = await fetch(`${OpenAPI.BASE}/api/v1/sucursales/${id}`, {
       method: "DELETE",
       headers: {
@@ -41,7 +42,9 @@ const DeleteSucursal = ({ sucursal }: DeleteSucursalProps) => {
     if (!res.ok) {
       let body: unknown = undefined
       try { body = await res.json() } catch {}
-      throw new ApiError({ url: res.url, status: res.status, statusText: res.statusText, body })
+      const request = { method: "DELETE", url: `/api/v1/sucursales/${id}` }
+      const response = { url: res.url, status: res.status, statusText: res.statusText, body }
+      throw new ApiError(request as any, response as any, res.statusText)
     }
     return res.json()
   }

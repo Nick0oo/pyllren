@@ -142,8 +142,8 @@ const BodegaCard = ({ bodega }: Props) => {
       </Card.Body>
       <Card.Footer>
         <HStack gap={2}>
-          <EditBodega bodega={displayBodega} />
-          <DeleteBodega bodega={displayBodega} />
+          <EditBodega bodega={displayBodega as any} />
+          <DeleteBodega bodega={displayBodega as any} />
         </HStack>
       </Card.Footer>
     </Card.Root>

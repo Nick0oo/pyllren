@@ -45,7 +45,7 @@ const RecepcionForm = ({ alcance }: Props) => {
     }
   }, [alcance.scopeSucursalId, methods])
 
-  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const { showErrorToast } = useCustomToast()
   const { recepcionMutation } = useRecepciones()
 
   const proveedoresQuery = useQuery<{ data: Array<{ id_proveedor: number; nombre: string }>; count: number }>({
@@ -72,7 +72,7 @@ const RecepcionForm = ({ alcance }: Props) => {
     // Convertir -1 (Sin bodega) a null si es necesario
     const loteData = {
       ...data.lote,
-      id_bodega: data.lote.id_bodega === -1 ? null : (data.lote.id_bodega > 0 ? data.lote.id_bodega : null),
+      id_bodega: data.lote.id_bodega === -1 ? null : (data.lote.id_bodega && data.lote.id_bodega > 0 ? data.lote.id_bodega : null),
     }
     
     // Remover numero_lote del payload, se genera automáticamente

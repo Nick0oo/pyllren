@@ -63,7 +63,8 @@ const EditSucursal = ({ sucursal }: { sucursal: SucursalEditable }) => {
   })
 
   const putSucursal = async (payload: SucursalUpdatePayload) => {
-    const token = (await OpenAPI.TOKEN?.()) || ""
+    const tokenFn = OpenAPI.TOKEN
+    const token = tokenFn ? (typeof tokenFn === 'function' ? await tokenFn({} as any) : tokenFn) : ""
     const res = await fetch(`${OpenAPI.BASE}/api/v1/sucursales/${sucursal.id_sucursal}`, {
       method: "PUT",
       headers: {
@@ -75,7 +76,9 @@ const EditSucursal = ({ sucursal }: { sucursal: SucursalEditable }) => {
     if (!res.ok) {
       let body: unknown = undefined
       try { body = await res.json() } catch {}
-      throw new ApiError({ url: res.url, status: res.status, statusText: res.statusText, body })
+      const request = { method: "PUT", url: `/api/v1/sucursales/${sucursal.id_sucursal}`, body: payload }
+      const response = { url: res.url, status: res.status, statusText: res.statusText, body }
+      throw new ApiError(request as any, response as any, res.statusText)
     }
     return res.json()
   }

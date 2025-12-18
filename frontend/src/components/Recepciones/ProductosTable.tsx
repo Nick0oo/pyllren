@@ -42,12 +42,12 @@ const defaultRow = {
 }
 
 const ProductosTable = () => {
-  const { control, register, formState, setValue } = useFormContext<FormValues>()
+  const { control, register, formState } = useFormContext<FormValues>()
   const { fields, append, remove } = useFieldArray({ control, name: "items" })
   const [showAdvanced, setShowAdvanced] = useState<Record<number, boolean>>({})
 
   // Cargar productos para búsqueda (opcional)
-  const productosQuery = useQuery({
+  useQuery({
     queryKey: ["productos", "all"],
     queryFn: async () => {
       const response = await apiRequest(OpenAPI, {
@@ -59,31 +59,31 @@ const ProductosTable = () => {
     },
   })
 
-  const handleSearchProduct = (index: number, searchTerm: string) => {
-    if (!searchTerm || searchTerm.length < 2) return
+  // const handleSearchProduct = (index: number, searchTerm: string) => {
+  //   if (!searchTerm || searchTerm.length < 2) return
 
-    const productos = productosQuery.data || []
-    const searchLower = searchTerm.toLowerCase()
+  //   const productos = productosQuery.data || []
+  //   const searchLower = searchTerm.toLowerCase()
 
-    const productoEncontrado = productos.find(
-      (p: any) =>
-        p.codigo_interno?.toLowerCase().includes(searchLower) ||
-        p.nombre_comercial?.toLowerCase().includes(searchLower) ||
-        p.nombre_generico?.toLowerCase().includes(searchLower)
-    )
+  //   const productoEncontrado = productos.find(
+  //     (p: any) =>
+  //       p.codigo_interno?.toLowerCase().includes(searchLower) ||
+  //       p.nombre_comercial?.toLowerCase().includes(searchLower) ||
+  //       p.nombre_generico?.toLowerCase().includes(searchLower)
+  //   )
 
-    if (productoEncontrado) {
-      setValue(`items.${index}.nombre_comercial`, productoEncontrado.nombre_comercial || "")
-      setValue(`items.${index}.nombre_generico`, productoEncontrado.nombre_generico || null)
-      setValue(`items.${index}.codigo_interno`, productoEncontrado.codigo_interno || null)
-      setValue(`items.${index}.forma_farmaceutica`, productoEncontrado.forma_farmaceutica || "")
-      setValue(`items.${index}.concentracion`, productoEncontrado.concentracion || "")
-      setValue(`items.${index}.presentacion`, productoEncontrado.presentacion || "")
-      setValue(`items.${index}.unidad_medida`, productoEncontrado.unidad_medida || "unidad")
-      setValue(`items.${index}.stock_minimo`, productoEncontrado.stock_minimo || 0)
-      setValue(`items.${index}.stock_maximo`, productoEncontrado.stock_maximo || 0)
-    }
-  }
+  //   if (productoEncontrado) {
+  //     setValue(`items.${index}.nombre_comercial`, productoEncontrado.nombre_comercial || "")
+  //     setValue(`items.${index}.nombre_generico`, productoEncontrado.nombre_generico || null)
+  //     setValue(`items.${index}.codigo_interno`, productoEncontrado.codigo_interno || null)
+  //     setValue(`items.${index}.forma_farmaceutica`, productoEncontrado.forma_farmaceutica || "")
+  //     setValue(`items.${index}.concentracion`, productoEncontrado.concentracion || "")
+  //     setValue(`items.${index}.presentacion`, productoEncontrado.presentacion || "")
+  //     setValue(`items.${index}.unidad_medida`, productoEncontrado.unidad_medida || "unidad")
+  //     setValue(`items.${index}.stock_minimo`, productoEncontrado.stock_minimo || 0)
+  //     setValue(`items.${index}.stock_maximo`, productoEncontrado.stock_maximo || 0)
+  //   }
+  // }
 
   return (
     <VStack gap={4} align="stretch">

@@ -1,6 +1,6 @@
 import { Badge, Container, Flex, Heading, Table } from "@chakra-ui/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { z } from "zod"
 
 import { type UserPublic, UsersService } from "@/client"
@@ -51,7 +51,7 @@ function UsersTable() {
   const { sucursales } = useRolesAndSucursales()
 
   const sucursalById = new Map<number, string>(
-    (sucursales || []).map((s) => [s.id_sucursal as number, s.nombre_sucursal as string])
+    (sucursales || []).map((s: any) => [s.id_sucursal as number, s.nombre_sucursal as string])
   )
 
   const { data, isLoading, isPlaceholderData } = useQuery({
